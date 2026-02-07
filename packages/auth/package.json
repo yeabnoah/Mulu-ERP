@@ -1,0 +1,24 @@
+{
+  "name": "@muluerp/auth",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@muluerp/db": "workspace:*",
+    "@muluerp/env": "workspace:*",
+    "better-auth": "catalog:",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@muluerp/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}

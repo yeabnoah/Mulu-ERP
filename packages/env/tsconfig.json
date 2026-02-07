@@ -1,0 +1,3 @@
+{
+  "extends": "@muluerp/config/tsconfig.base.json"
+}
