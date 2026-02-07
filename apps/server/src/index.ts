@@ -23,7 +23,27 @@ app.get("/", (c) => {
   return c.text("OK");
 });
 
+app.use("/api/*", async (c, next) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  if (!session) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  await next();
+});
+
+app.get("/api/users", async (c) => {
+  const users = await prisma.user.findMany();
+  return c.json(users);
+});
+
+app.get("/api/users/:id", async (c) => {
+  const { id } = c.req.param();
+  const user = await prisma.user.findUnique({ where: { id } });
+  return c.json(user);
+});
+
 import { serve } from "@hono/node-server";
+import prisma from "@muluerp/db";
 
 serve(
   {

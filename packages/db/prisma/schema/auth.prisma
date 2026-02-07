@@ -1,13 +1,23 @@
 model User {
-  id            String    @id
+  id            String   @id
   name          String
   email         String
-  emailVerified Boolean   @default(false)
+  emailVerified Boolean  @default(false)
   image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  sessions      Session[]
-  accounts      Account[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  familyId String?
+  family   Family? @relation(fields: [familyId], references: [id])
+
+  sessions Session[]
+  accounts Account[]
+
+  roles         UserRole[]
+  ministries    MinistryMember[]
+  zones         ZoneMember[]
+  pastoredZones Zone[]            @relation("ZonePastor")
+  familyRole    FamilyMemberType?
 
   @@unique([email])
   @@map("user")
