@@ -18,5 +18,10 @@ export const auth = betterAuth({
       httpOnly: true,
     },
   },
-  plugins: [],
+  // Disable signup - only single admin user allowed
+  handlers: {
+    signUp: async () => {
+      throw new Error("Sign up is disabled. Contact administrator.");
+    },
+  },
 });

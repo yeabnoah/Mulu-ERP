@@ -2,6 +2,8 @@
 
 import * as React from "react"
 import { Dialog as SheetPrimitive } from "@base-ui/react/dialog"
+import { useRender } from "@base-ui/react/use-render"
+import { mergeProps } from "@base-ui/react/merge-props"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -11,12 +13,50 @@ function Sheet({ ...props }: SheetPrimitive.Root.Props) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />
 }
 
-function SheetTrigger({ ...props }: SheetPrimitive.Trigger.Props) {
-  return <SheetPrimitive.Trigger data-slot="sheet-trigger" {...props} />
+function SheetTrigger({
+  render,
+  ...props
+}: SheetPrimitive.Trigger.Props & useRender.ComponentProps<"button">) {
+  return (
+    <SheetPrimitive.Trigger
+      render={useRender({
+        defaultTagName: "button",
+        props: mergeProps<"button">(
+          {
+            "data-slot": "sheet-trigger",
+          } as any,
+          props
+        ),
+        render,
+        state: {
+          slot: "sheet-trigger",
+        },
+      })}
+    />
+  )
 }
 
-function SheetClose({ ...props }: SheetPrimitive.Close.Props) {
-  return <SheetPrimitive.Close data-slot="sheet-close" {...props} />
+function SheetClose({
+  render,
+  ...props
+}: SheetPrimitive.Close.Props & useRender.ComponentProps<"button">) {
+  return (
+    <SheetPrimitive.Close
+      render={useRender({
+        defaultTagName: "button",
+        props: mergeProps<"button">(
+          {
+            "data-slot": "sheet-close",
+          } as any,
+          props
+        ),
+        render,
+        state: {
+          slot: "sheet-close",
+        },
+      })}
+    />
+  )
 }
 
 function SheetPortal({ ...props }: SheetPrimitive.Portal.Props) {
@@ -54,8 +94,7 @@ function SheetContent({
       >
         {children}
         {showCloseButton && (
-          <SheetPrimitive.Close
-            data-slot="sheet-close"
+          <SheetClose
             render={
               <Button
                 variant="ghost"
@@ -67,7 +106,7 @@ function SheetContent({
             <XIcon
             />
             <span className="sr-only">Close</span>
-          </SheetPrimitive.Close>
+          </SheetClose>
         )}
       </SheetPrimitive.Popup>
     </SheetPortal>

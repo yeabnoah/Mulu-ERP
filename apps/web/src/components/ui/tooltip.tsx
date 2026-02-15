@@ -1,4 +1,6 @@
 import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip"
+import { mergeProps } from "@base-ui/react/merge-props"
+import { useRender } from "@base-ui/react/use-render"
 
 import { cn } from "@/lib/utils"
 
@@ -19,8 +21,27 @@ function Tooltip({ ...props }: TooltipPrimitive.Root.Props) {
   return <TooltipPrimitive.Root data-slot="tooltip" {...props} />
 }
 
-function TooltipTrigger({ ...props }: TooltipPrimitive.Trigger.Props) {
-  return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />
+function TooltipTrigger({
+  render,
+  ...props
+}: TooltipPrimitive.Trigger.Props & useRender.ComponentProps<"button">) {
+  return (
+    <TooltipPrimitive.Trigger
+      render={useRender({
+        defaultTagName: "button",
+        props: mergeProps<"button">(
+          {
+            "data-slot": "tooltip-trigger",
+          } as any,
+          props
+        ),
+        render,
+        state: {
+          slot: "tooltip-trigger",
+        },
+      })}
+    />
+  )
 }
 
 function TooltipContent({

@@ -14,12 +14,14 @@ import { authClient } from "@/lib/auth-client";
 
 import { Button } from "./ui/button";
 import { Skeleton } from "./ui/skeleton";
+import { useMounted } from "@/hooks/use-mounted";
 
 export default function UserMenu() {
   const router = useRouter();
+  const mounted = useMounted();
   const { data: session, isPending } = authClient.useSession();
 
-  if (isPending) {
+  if (!mounted || isPending) {
     return <Skeleton className="h-9 w-24" />;
   }
 

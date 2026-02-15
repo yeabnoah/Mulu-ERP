@@ -7,8 +7,47 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  // Personal Information
+  birthPlace        String?
+  birthDate         DateTime?
+  livingAddress     String?
+  mobile1           String?
+  mobile2           String?
+
+  // Education & Work
+  educationStatus   String?
+  skill             String?
+  work              String?
+  companyName       String?
+
+  // Emergency Contact
+  closePersonName   String?
+  closePersonMobile String?
+
+  // Marriage Information
+  marriageStatus    MarriageStatus?
+  spouseName        String?
+  spouseBelief      SpouseBelief?
+
+  // Church Information
+  baptizedYear           Int?
+  foundationTeacherName String?
+  fromOtherChurch       Boolean  @default(false)
+  formerChurchName      String?
+  leaveMessage          String?
+  leaveMessageType      LeaveMessageType?
+  leaveMessageBroughtDate DateTime?
+
   familyId String?
   family   Family? @relation(fields: [familyId], references: [id])
+
+  // Zone assignment
+  zoneId String?
+  zone   Zone?  @relation(fields: [zoneId], references: [id])
+
+  // Current Ministry
+  currentMinistryId String?
+  currentMinistry   Ministry? @relation("UserCurrentMinistry", fields: [currentMinistryId], references: [id])
 
   sessions Session[]
   accounts Account[]
@@ -18,9 +57,42 @@ model User {
   zones         ZoneMember[]
   pastoredZones Zone[]            @relation("ZonePastor")
   familyRole    FamilyMemberType?
+  children      Child[]
 
   @@unique([email])
   @@map("user")
+}
+
+enum MarriageStatus {
+  SINGLE
+  MARRIED
+  WIDOW
+  DIVORCED
+}
+
+enum SpouseBelief {
+  BELIEVER
+  OTHER
+}
+
+enum LeaveMessageType {
+  LEAVE_MESSAGE
+  SPECIAL_CASE
+}
+
+model Child {
+  id          String   @id @default(cuid())
+  name        String
+  gender      String
+  grade       String?
+  relationType String?
+  schoolYear  String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Session {

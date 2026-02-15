@@ -22,7 +22,8 @@ model Ministry {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  members MinistryMember[]
+  members          MinistryMember[]
+  currentMembers   User[]            @relation("UserCurrentMinistry")
 }
 
 model MinistryMember {
@@ -45,6 +46,9 @@ model Zone {
 
   families Family[]
   members  ZoneMember[]
+
+  // Users assigned to this zone
+  users User[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
