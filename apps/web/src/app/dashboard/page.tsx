@@ -445,7 +445,7 @@ export default function Page() {
               </Tabs>
 
               {view === "pastor" && (
-                <Select value={selectedZone} onValueChange={setSelectedZone}>
+                <Select value={selectedZone} onValueChange={(value) => setSelectedZone(value || "")}>
                   <SelectTrigger className="w-[200px]">
                     <SelectValue placeholder="Select Zone" />
                   </SelectTrigger>

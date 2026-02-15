@@ -5,6 +5,10 @@ export const ministryService = {
         const { data } = await api.get("/ministries");
         return data;
     },
+    getById: async (id: string) => {
+        const { data } = await api.get(`/ministries/${id}`);
+        return data;
+    },
     create: async (payload: { name: string; description?: string }) => {
         const { data } = await api.post("/ministries", payload);
         return data;

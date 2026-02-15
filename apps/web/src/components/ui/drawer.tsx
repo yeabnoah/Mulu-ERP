@@ -15,7 +15,7 @@ function DrawerTrigger({
 }: React.ComponentProps<typeof DrawerPrimitive.Trigger> & {
   asChild?: boolean
 }) {
-  return <DrawerPrimitive.Trigger data-slot="drawer-trigger" {...props} />
+  return <DrawerPrimitive.Trigger data-slot="drawer-trigger" asChild={asChild} {...props} />
 }
 
 function DrawerPortal({
@@ -30,7 +30,7 @@ function DrawerClose({
 }: React.ComponentProps<typeof DrawerPrimitive.Close> & {
   asChild?: boolean
 }) {
-  return <DrawerPrimitive.Close data-slot="drawer-close" {...props} />
+  return <DrawerPrimitive.Close data-slot="drawer-close" asChild={asChild} {...props} />
 }
 
 function DrawerOverlay({

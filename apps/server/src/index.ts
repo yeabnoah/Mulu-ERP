@@ -45,7 +45,7 @@ app.use("/api/*", async (c, next) => {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
-  // Check for ADMIN role
+  // Check for ADMIN or PASTOR role
   const userWithRoles = await prisma.user.findUnique({
     where: { id: session.user.id },
     include: {
@@ -54,16 +54,23 @@ app.use("/api/*", async (c, next) => {
           role: true,
         },
       },
+      zone: true,
     },
   });
 
-  const isAdmin = userWithRoles?.roles.some((r) => r.role.name === "ADMIN");
+  const roles = userWithRoles?.roles.map((r) => r.role.name) || [];
+  const isAdmin = roles.includes("ADMIN");
+  const isPastor = roles.includes("PASTOR");
 
-  if (!isAdmin) {
-    // We allow users to see their own info/profile? 
+  // Store user info in context for later use
+  c.set("userRoles", roles);
+  c.set("userZoneId", userWithRoles?.zoneId);
+
+  if (!isAdmin && !isPastor) {
+    // We allow users to see their own info/profile?
     // The user said: "don't allow any access of information if the user's role is not admin"
-    // So we strictly enforce ADMIN for all /api/* routes except auth.
-    return c.json({ error: "Forbidden: Admin access required" }, 403);
+    // So we strictly enforce ADMIN/PASTOR for all /api/* routes except auth.
+    return c.json({ error: "Forbidden: Admin or Pastor access required" }, 403);
   }
 
   await next();

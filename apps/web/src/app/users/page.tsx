@@ -46,6 +46,7 @@ export default function UsersPage() {
         {
             id: "roles",
             label: "Role",
+            multiSelect: true,
             options: (roles || []).map((role: { name: string }) => ({
                 label: role.name,
                 value: role.name.toLowerCase(),
@@ -54,6 +55,7 @@ export default function UsersPage() {
         {
             id: "family",
             label: "Family",
+            multiSelect: true,
             options: (families || []).map((family: { name: string }) => ({
                 label: family.name,
                 value: family.name.toLowerCase(),
@@ -62,6 +64,7 @@ export default function UsersPage() {
         {
             id: "zone",
             label: "Zone",
+            multiSelect: true,
             options: (zones || []).map((zone: { name: string }) => ({
                 label: zone.name,
                 value: zone.name.toLowerCase(),
@@ -70,6 +73,7 @@ export default function UsersPage() {
         {
             id: "currentMinistry",
             label: "Ministry",
+            multiSelect: true,
             options: (ministries || []).map((ministry: { name: string }) => ({
                 label: ministry.name,
                 value: ministry.name.toLowerCase(),
@@ -78,6 +82,7 @@ export default function UsersPage() {
         {
             id: "marriageStatus",
             label: "Marriage Status",
+            multiSelect: true,
             options: [
                 { label: "Single", value: "single" },
                 { label: "Married", value: "married" },
@@ -88,6 +93,7 @@ export default function UsersPage() {
         {
             id: "baptizedYear",
             label: "Baptized",
+            multiSelect: true,
             options: [
                 { label: "Baptized", value: "baptized" },
                 { label: "Not Baptized", value: "not-baptized" },
@@ -96,6 +102,7 @@ export default function UsersPage() {
         {
             id: "fromOtherChurch",
             label: "From Other Church",
+            multiSelect: true,
             options: [
                 { label: "Yes", value: "yes" },
                 { label: "No", value: "no" },

@@ -15,7 +15,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { LayoutDashboardIcon, ListIcon, ChartBarIcon, FolderIcon, UsersIcon, CameraIcon, FileTextIcon, Settings2Icon, CircleHelpIcon, SearchIcon, DatabaseIcon, FileChartColumnIcon, FileIcon, CommandIcon } from "lucide-react"
+import { LayoutDashboardIcon, ListIcon, ChartBarIcon, FolderIcon, UsersIcon, CameraIcon, FileTextIcon, Settings2Icon, CircleHelpIcon, SearchIcon, DatabaseIcon, FileChartColumnIcon, FileIcon, CommandIcon, CrossIcon } from "lucide-react"
 
 const data = {
   navMain: [
@@ -48,6 +48,11 @@ const data = {
       title: "Roles",
       url: "/roles",
       icon: <Settings2Icon />,
+    },
+    {
+      title: "Pastor Portal",
+      url: "/pastor",
+      icon: <CrossIcon />,
     },
   ],
   navSecondary: [

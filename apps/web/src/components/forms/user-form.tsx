@@ -34,9 +34,50 @@ interface Child {
     schoolYear?: string
 }
 
-export function UserForm() {
+interface UserFormProps {
+    user?: UserData | null;
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
+    defaultValues?: Partial<UserData>;
+}
+
+interface UserData {
+    id: string;
+    name: string;
+    birthPlace?: string;
+    birthDate?: string;
+    livingAddress?: string;
+    mobile1?: string;
+    mobile2?: string;
+    educationStatus?: string;
+    skill?: string;
+    work?: string;
+    companyName?: string;
+    zoneId?: string;
+    currentMinistryId?: string;
+    closePersonName?: string;
+    closePersonMobile?: string;
+    marriageStatus?: string;
+    spouseName?: string;
+    spouseBelief?: string;
+    baptizedYear?: number;
+    foundationTeacherName?: string;
+    fromOtherChurch?: boolean;
+    formerChurchName?: string;
+    leaveMessage?: string;
+    leaveMessageType?: string;
+    familyId?: string;
+    familyRole?: string;
+    roleIds?: string[];
+    children?: Child[];
+}
+
+export function UserForm({ user, open: externalOpen, onOpenChange: externalOnOpenChange, defaultValues }: UserFormProps) {
     const queryClient = useQueryClient()
-    const [open, setOpen] = React.useState(false)
+    const [internalOpen, setInternalOpen] = React.useState(false)
+    const open = externalOpen !== undefined ? externalOpen : internalOpen
+    const setOpen = externalOnOpenChange || setInternalOpen
+    const isEditing = !!user
 
     // Basic Info
     const [name, setName] = React.useState("")
@@ -103,16 +144,66 @@ export function UserForm() {
         queryFn: () => familyService.getAll(),
     })
 
+    // Populate form when editing
+    React.useEffect(() => {
+        if (user) {
+            setName(user.name || "")
+            setBirthPlace(user.birthPlace || "")
+            setBirthDate(user.birthDate || "")
+            setLivingAddress(user.livingAddress || "")
+            setMobile1(user.mobile1 || "")
+            setMobile2(user.mobile2 || "")
+            setEducationStatus(user.educationStatus || "")
+            setSkill(user.skill || "")
+            setWork(user.work || "")
+            setCompanyName(user.companyName || "")
+            setZoneId(user.zoneId || "")
+            setCurrentMinistryId(user.currentMinistryId || "")
+            setClosePersonName(user.closePersonName || "")
+            setClosePersonMobile(user.closePersonMobile || "")
+            setMarriageStatus(user.marriageStatus || "")
+            setSpouseName(user.spouseName || "")
+            setSpouseBelief(user.spouseBelief || "")
+            setBaptizedYear(user.baptizedYear?.toString() || "")
+            setFoundationTeacherName(user.foundationTeacherName || "")
+            setFromOtherChurch(user.fromOtherChurch || false)
+            setFormerChurchName(user.formerChurchName || "")
+            setLeaveMessage(user.leaveMessage || "")
+            setLeaveMessageType(user.leaveMessageType || "")
+            setFamilyId(user.familyId || "")
+            setFamilyRole(user.familyRole || "")
+            setSelectedRoles(user.roleIds || [])
+            setChildren(user.children || [])
+        }
+    }, [user])
+
+    // Apply default values when opening in create mode
+    React.useEffect(() => {
+        if (!isEditing && defaultValues && open) {
+            if (defaultValues.zoneId) setZoneId(defaultValues.zoneId)
+            if (defaultValues.currentMinistryId) setCurrentMinistryId(defaultValues.currentMinistryId)
+            if (defaultValues.familyId) setFamilyId(defaultValues.familyId)
+            if (defaultValues.familyRole) setFamilyRole(defaultValues.familyRole)
+        }
+    }, [defaultValues, open, isEditing])
+
     const mutation = useMutation({
-        mutationFn: (payload: any) => userService.create(payload),
+        mutationFn: (payload: any) => {
+            if (isEditing && user) {
+                return userService.update(user.id, payload)
+            }
+            return userService.create(payload)
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["users"] })
-            toast.success("Member created successfully")
+            toast.success(isEditing ? "Member updated successfully" : "Member created successfully")
             setOpen(false)
-            resetForm()
+            if (!externalOnOpenChange) {
+                resetForm()
+            }
         },
         onError: (error: any) => {
-            toast.error(error.response?.data?.error || "Failed to create member")
+            toast.error(error.response?.data?.error || `Failed to ${isEditing ? "update" : "create"} member`)
         },
     })
 
@@ -209,9 +300,9 @@ export function UserForm() {
             </SheetTrigger>
             <SheetContent side="right" className="w-[500px] max-w-full overflow-y-auto">
                 <SheetHeader>
-                    <SheetTitle>Add New Member</SheetTitle>
+                    <SheetTitle>{isEditing ? "Edit Member" : "Add New Member"}</SheetTitle>
                     <SheetDescription>
-                        Register a new church member with all their details.
+                        {isEditing ? "Update member details." : "Register a new church member with all their details."}
                     </SheetDescription>
                 </SheetHeader>
                 <form onSubmit={handleSubmit} className="flex flex-col gap-6 py-4 px-4 text-sm">
@@ -287,7 +378,7 @@ export function UserForm() {
                         <div className="grid grid-cols-2 gap-4">
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="educationStatus">Education Status</Label>
-                                <Select value={educationStatus} onValueChange={setEducationStatus}>
+                                <Select value={educationStatus} onValueChange={(value) => setEducationStatus(value || "")}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select..." />
                                     </SelectTrigger>
@@ -338,7 +429,7 @@ export function UserForm() {
                         <div className="grid grid-cols-2 gap-4">
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="zone">Zone</Label>
-                                <Select value={zoneId} onValueChange={setZoneId}>
+                                <Select value={zoneId} onValueChange={(value) => setZoneId(value || "")}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select zone..." />
                                     </SelectTrigger>
@@ -351,7 +442,7 @@ export function UserForm() {
                             </div>
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="ministry">Current Ministry</Label>
-                                <Select value={currentMinistryId} onValueChange={setCurrentMinistryId}>
+                                <Select value={currentMinistryId} onValueChange={(value) => setCurrentMinistryId(value || "")}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select ministry..." />
                                     </SelectTrigger>
@@ -371,7 +462,7 @@ export function UserForm() {
                         <div className="grid grid-cols-2 gap-4">
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="family">Assign to Family</Label>
-                                <Select value={familyId} onValueChange={setFamilyId}>
+                                <Select value={familyId} onValueChange={(value) => setFamilyId(value || "")}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select family..." />
                                     </SelectTrigger>
@@ -384,7 +475,7 @@ export function UserForm() {
                             </div>
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="familyRole">Family Role</Label>
-                                <Select value={familyRole} onValueChange={setFamilyRole}>
+                                <Select value={familyRole} onValueChange={(value) => setFamilyRole(value || "")}>
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select role..." />
                                     </SelectTrigger>
@@ -429,7 +520,7 @@ export function UserForm() {
                         <h3 className="font-semibold text-base border-b pb-2">Marriage Information</h3>
                         <div className="flex flex-col gap-2">
                             <Label htmlFor="marriageStatus">Marriage Status</Label>
-                            <Select value={marriageStatus} onValueChange={setMarriageStatus}>
+                            <Select value={marriageStatus} onValueChange={(value) => setMarriageStatus(value || "")}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select status..." />
                                 </SelectTrigger>
@@ -454,7 +545,7 @@ export function UserForm() {
                                 </div>
                                 <div className="flex flex-col gap-2">
                                     <Label htmlFor="spouseBelief">Spouse Belief</Label>
-                                    <Select value={spouseBelief} onValueChange={setSpouseBelief}>
+                                    <Select value={spouseBelief} onValueChange={(value) => setSpouseBelief(value || "")}>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select..." />
                                         </SelectTrigger>
@@ -490,7 +581,7 @@ export function UserForm() {
                                         </div>
                                         <div className="flex flex-col gap-1">
                                             <Label className="text-xs">Gender</Label>
-                                            <Select value={child.gender} onValueChange={(v) => updateChild(index, "gender", v)}>
+                                            <Select value={child.gender} onValueChange={(v) => updateChild(index, "gender", v || "")}>
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Select..." />
                                                 </SelectTrigger>
@@ -570,7 +661,7 @@ export function UserForm() {
                                 </div>
                                 <div className="flex flex-col gap-2">
                                     <Label htmlFor="leaveMessageType">Leave Message Type</Label>
-                                    <Select value={leaveMessageType} onValueChange={setLeaveMessageType}>
+                                    <Select value={leaveMessageType} onValueChange={(value) => setLeaveMessageType(value || "")}>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select..." />
                                         </SelectTrigger>
@@ -620,7 +711,7 @@ export function UserForm() {
 
                     <SheetFooter className="px-0 pt-4">
                         <Button type="submit" className="w-full" disabled={mutation.isPending}>
-                            {mutation.isPending ? "Creating..." : "Create Member"}
+                            {mutation.isPending ? (isEditing ? "Updating..." : "Creating...") : (isEditing ? "Update Member" : "Create Member")}
                         </Button>
                         <SheetClose render={<Button variant="outline" className="w-full" type="button" />}>
                             Cancel

@@ -11,6 +11,7 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -26,14 +27,28 @@ import { EllipsisVerticalIcon, CircleUserRoundIcon, LogOutIcon } from "lucide-re
 
 export function NavUser() {
   const { isMobile } = useSidebar()
-  const { data: session } = authClient.useSession()
-  const signOut = authClient.useSignOut()
+  const { data: session, isPending } = authClient.useSession()
 
   const user = session?.user
 
   const handleSignOut = async () => {
-    await signOut.signOut()
+    await authClient.signOut()
     window.location.href = "/login"
+  }
+
+  // Show loading state while session is being determined
+  if (isPending) {
+    return (
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton size="lg" className="aria-expanded:bg-muted">
+            <Avatar className="h-8 w-8">
+              <AvatarFallback className="rounded-lg">...</AvatarFallback>
+            </Avatar>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    )
   }
 
   if (!user) {
@@ -67,20 +82,22 @@ export function NavUser() {
             align="end"
             sideOffset={4}
           >
-            <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="size-8">
-                  <AvatarImage src={user.image ?? undefined} alt={user.name ?? "Admin"} />
-                  <AvatarFallback className="rounded-lg">AD</AvatarFallback>
-                </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.name ?? "Admin"}</span>
-                  <span className="text-muted-foreground truncate text-xs">
-                    {user.email}
-                  </span>
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="p-0 font-normal">
+                <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                  <Avatar className="size-8">
+                    <AvatarImage src={user.image ?? undefined} alt={user.name ?? "Admin"} />
+                    <AvatarFallback className="rounded-lg">AD</AvatarFallback>
+                  </Avatar>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-medium">{user.name ?? "Admin"}</span>
+                    <span className="text-muted-foreground truncate text-xs">
+                      {user.email}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </DropdownMenuLabel>
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
               <CircleUserRoundIcon />

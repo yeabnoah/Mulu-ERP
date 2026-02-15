@@ -1,7 +1,7 @@
 "use client"
 
-import { ColumnDef } from "@tanstack/react-table"
-import { Role } from "@/services/role.service"
+import type { ColumnDef } from "@tanstack/react-table"
+import type { Role } from "@/services/role.service"
 import { Button } from "@/components/ui/button"
 import { Trash2Icon } from "lucide-react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"

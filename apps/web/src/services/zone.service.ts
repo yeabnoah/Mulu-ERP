@@ -5,6 +5,10 @@ export const zoneService = {
         const { data } = await api.get("/zones");
         return data;
     },
+    getByPastorId: async (userId: string) => {
+        const { data } = await api.get(`/zones/pastor/${userId}`);
+        return data;
+    },
     create: async (payload: { name: string; description?: string; pastorId: string }) => {
         const { data } = await api.post("/zones", payload);
         return data;

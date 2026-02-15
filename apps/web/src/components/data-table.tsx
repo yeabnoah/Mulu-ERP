@@ -40,6 +40,9 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Label } from "@/components/ui/label"
@@ -60,13 +63,14 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ChevronDownIcon, ChevronsLeftIcon, ChevronLeftIcon, ChevronRightIcon, ChevronsRightIcon, Columns3Icon, GripVerticalIcon, XIcon } from "lucide-react"
+import { ChevronDownIcon, ChevronsLeftIcon, ChevronLeftIcon, ChevronRightIcon, ChevronsRightIcon, Columns3Icon, FilterIcon, GripVerticalIcon, XIcon } from "lucide-react"
 
 export type DataTableFilterOption<TData> = {
   id: string
   label: string
   options: { label: string; value: string; icon?: React.ComponentType<{ className?: string }> }[]
   type?: "select" | "boolean"
+  multiSelect?: boolean
 }
 
 interface DataTableProps<TData, TValue> {
@@ -137,7 +141,7 @@ export function DataTable<TData, TValue>({
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   )
-  const [activeFilters, setActiveFilters] = React.useState<Record<string, string>>({})
+  const [activeFilters, setActiveFilters] = React.useState<Record<string, string[]>>({})
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [pagination, setPagination] = React.useState({
     pageIndex: 0,
@@ -161,16 +165,26 @@ export function DataTable<TData, TValue>({
   // Sync active filters with column filters
   React.useEffect(() => {
     const newFilters: ColumnFiltersState = Object.entries(activeFilters)
-      .filter(([_, value]) => value && value !== "all")
-      .map(([id, value]) => ({ id, value }))
+      .filter(([_, value]) => value && value.length > 0)
+      .map(([id, value]) => ({ id, value: value.join("|") }))
     setColumnFilters(newFilters)
   }, [activeFilters])
 
-  function handleFilterChange(filterId: string, value: string) {
-    setActiveFilters((prev) => ({
-      ...prev,
-      [filterId]: value,
-    }))
+  function handleFilterChange(filterId: string, value: string, multiSelect?: boolean) {
+    if (multiSelect) {
+      setActiveFilters((prev) => {
+        const current = prev[filterId] || []
+        if (current.includes(value)) {
+          return { ...prev, [filterId]: current.filter((v) => v !== value) }
+        }
+        return { ...prev, [filterId]: [...current, value] }
+      })
+    } else {
+      setActiveFilters((prev) => ({
+        ...prev,
+        [filterId]: [value],
+      }))
+    }
   }
 
   function clearFilter(filterId: string) {
@@ -179,6 +193,17 @@ export function DataTable<TData, TValue>({
       delete newFilters[filterId]
       return newFilters
     })
+  }
+
+  function getFilterBadge(filterId: string) {
+    const filter = filters?.find((f) => f.id === filterId)
+    const values = activeFilters[filterId] || []
+    if (values.length === 0) return null
+    if (values.length === 1) {
+      const option = filter?.options.find((o) => o.value === values[0])
+      return option?.label || values[0]
+    }
+    return `${values.length} selected`
   }
 
   const table = useReactTable({
@@ -263,38 +288,64 @@ export function DataTable<TData, TValue>({
       </div>
       {filters && filters.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 px-4 lg:px-6">
-          {filters.map((filter) => (
-            <div key={filter.id} className="flex items-center gap-2">
-              <Select
-                value={activeFilters[filter.id] || "all"}
-                onValueChange={(value) => handleFilterChange(filter.id, value || "all")}
-              >
-                <SelectTrigger className="w-40" size="sm">
-                  <SelectValue placeholder={filter.label} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="all">All {filter.label}s</SelectItem>
+          {Object.keys(activeFilters).length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground"
+              onClick={() => setActiveFilters({})}
+            >
+              Clear all
+            </Button>
+          )}
+          {filters.map((filter) => {
+            const badge = getFilterBadge(filter.id)
+            return (
+              <DropdownMenu key={filter.id}>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      variant={badge ? "secondary" : "outline"}
+                      size="sm"
+                      className="gap-2"
+                    >
+                      <FilterIcon className="size-4" />
+                      <span>{filter.label}</span>
+                      {badge && <span className="text-xs opacity-70">({badge})</span>}
+                    </Button>
+                  }
+                />
+                <DropdownMenuContent align="start" className="w-56">
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>{filter.label}</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
                     {filter.options.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
+                      <DropdownMenuCheckboxItem
+                        key={option.value}
+                        checked={activeFilters[filter.id]?.includes(option.value) || false}
+                        onCheckedChange={() => handleFilterChange(filter.id, option.value, true)}
+                      >
                         {option.label}
-                      </SelectItem>
+                      </DropdownMenuCheckboxItem>
                     ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-              {activeFilters[filter.id] && activeFilters[filter.id] !== "all" && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-7 text-muted-foreground"
-                  onClick={() => clearFilter(filter.id)}
-                >
-                  <XIcon className="size-4" />
-                </Button>
-              )}
-            </div>
-          ))}
+                    {badge && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-start text-muted-foreground"
+                          onClick={() => clearFilter(filter.id)}
+                        >
+                          Clear filter
+                        </Button>
+                      </>
+                    )}
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )
+          })}
         </div>
       )}
       <div className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">

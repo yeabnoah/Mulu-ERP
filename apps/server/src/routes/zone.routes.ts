@@ -16,6 +16,22 @@ zoneRoutes.get("/", async (c) => {
     return c.json(zones);
 });
 
+// Get zone by pastor user ID
+zoneRoutes.get("/pastor/:userId", async (c) => {
+    const userId = c.req.param("userId");
+    const zone = await prisma.zone.findFirst({
+        where: { pastorId: userId },
+        include: {
+            pastor: true,
+            _count: {
+                select: { members: true, families: true },
+            },
+        },
+    });
+    if (!zone) return c.json({ error: "Zone not found for this pastor" }, 404);
+    return c.json(zone);
+});
+
 // Create a zone
 zoneRoutes.post("/", async (c) => {
     const { name, description, pastorId } = await c.req.json<{ name: string; description?: string; pastorId: string }>();

@@ -15,6 +15,21 @@ ministryRoutes.get("/", async (c) => {
     return c.json(ministries);
 });
 
+// Get ministry by ID
+ministryRoutes.get("/:id", async (c) => {
+    const id = c.req.param("id");
+    const ministry = await prisma.ministry.findUnique({
+        where: { id },
+        include: {
+            _count: {
+                select: { members: true },
+            },
+        },
+    });
+    if (!ministry) return c.json({ error: "Ministry not found" }, 404);
+    return c.json(ministry);
+});
+
 // Create a ministry
 ministryRoutes.post("/", async (c) => {
     const { name, description } = await c.req.json<{ name: string; description?: string }>();
