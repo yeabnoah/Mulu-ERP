@@ -27,7 +27,7 @@ app.use(
 );
 
 // Auth handler
-app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
+app.on(["POST", "GET", "DELETE"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 
 app.get("/", (c) => {
   return c.text("ERP Server OK");

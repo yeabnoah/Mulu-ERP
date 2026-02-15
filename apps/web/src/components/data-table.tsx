@@ -60,7 +60,14 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Skeleton } from "@/components/ui/skeleton"
-import { GripVerticalIcon, Columns3Icon, ChevronDownIcon, ChevronsLeftIcon, ChevronLeftIcon, ChevronRightIcon, ChevronsRightIcon } from "lucide-react"
+import { ChevronDownIcon, ChevronsLeftIcon, ChevronLeftIcon, ChevronRightIcon, ChevronsRightIcon, Columns3Icon, GripVerticalIcon, XIcon } from "lucide-react"
+
+export type DataTableFilterOption<TData> = {
+  id: string
+  label: string
+  options: { label: string; value: string; icon?: React.ComponentType<{ className?: string }> }[]
+  type?: "select" | "boolean"
+}
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -69,6 +76,7 @@ interface DataTableProps<TData, TValue> {
   headerActions?: React.ReactNode
   getRowId?: (row: TData) => string
   isLoading?: boolean
+  filters?: DataTableFilterOption<TData>[]
 }
 
 function DragHandle({ id }: { id: string }) {
@@ -120,6 +128,7 @@ export function DataTable<TData, TValue>({
   headerActions,
   getRowId = (row: any) => row.id.toString(),
   isLoading,
+  filters,
 }: DataTableProps<TData, TValue>) {
   const [data, setData] = React.useState(() => initialData)
   const [rowSelection, setRowSelection] = React.useState({})
@@ -128,6 +137,7 @@ export function DataTable<TData, TValue>({
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   )
+  const [activeFilters, setActiveFilters] = React.useState<Record<string, string>>({})
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [pagination, setPagination] = React.useState({
     pageIndex: 0,
@@ -147,6 +157,29 @@ export function DataTable<TData, TValue>({
   React.useEffect(() => {
     setData(initialData)
   }, [initialData])
+
+  // Sync active filters with column filters
+  React.useEffect(() => {
+    const newFilters: ColumnFiltersState = Object.entries(activeFilters)
+      .filter(([_, value]) => value && value !== "all")
+      .map(([id, value]) => ({ id, value }))
+    setColumnFilters(newFilters)
+  }, [activeFilters])
+
+  function handleFilterChange(filterId: string, value: string) {
+    setActiveFilters((prev) => ({
+      ...prev,
+      [filterId]: value,
+    }))
+  }
+
+  function clearFilter(filterId: string) {
+    setActiveFilters((prev) => {
+      const newFilters = { ...prev }
+      delete newFilters[filterId]
+      return newFilters
+    })
+  }
 
   const table = useReactTable({
     data,
@@ -228,6 +261,42 @@ export function DataTable<TData, TValue>({
           {headerActions}
         </div>
       </div>
+      {filters && filters.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 px-4 lg:px-6">
+          {filters.map((filter) => (
+            <div key={filter.id} className="flex items-center gap-2">
+              <Select
+                value={activeFilters[filter.id] || "all"}
+                onValueChange={(value) => handleFilterChange(filter.id, value || "all")}
+              >
+                <SelectTrigger className="w-40" size="sm">
+                  <SelectValue placeholder={filter.label} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="all">All {filter.label}s</SelectItem>
+                    {filter.options.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              {activeFilters[filter.id] && activeFilters[filter.id] !== "all" && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-7 text-muted-foreground"
+                  onClick={() => clearFilter(filter.id)}
+                >
+                  <XIcon className="size-4" />
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
       <div className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
         <div className="overflow-hidden rounded-lg border">
           <DndContext

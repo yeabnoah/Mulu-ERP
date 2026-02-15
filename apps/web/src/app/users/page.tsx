@@ -1,9 +1,14 @@
 "use client"
 
+import * as React from "react"
 import { useQuery } from "@tanstack/react-query"
 import { userService } from "@/services/user.service"
+import { roleService } from "@/services/role.service"
+import { familyService } from "@/services/family.service"
+import { zoneService } from "@/services/zone.service"
+import { ministryService } from "@/services/ministry.service"
 import { AppSidebar } from "@/components/app-sidebar"
-import { DataTable } from "@/components/data-table"
+import { DataTable, type DataTableFilterOption } from "@/components/data-table"
 import { SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
@@ -16,6 +21,87 @@ export default function UsersPage() {
         queryKey: ["users"],
         queryFn: () => userService.getAll(),
     })
+
+    const { data: roles } = useQuery({
+        queryKey: ["roles"],
+        queryFn: () => roleService.getAll(),
+    })
+
+    const { data: families } = useQuery({
+        queryKey: ["families"],
+        queryFn: () => familyService.getAll(),
+    })
+
+    const { data: zones } = useQuery({
+        queryKey: ["zones"],
+        queryFn: () => zoneService.getAll(),
+    })
+
+    const { data: ministries } = useQuery({
+        queryKey: ["ministries"],
+        queryFn: () => ministryService.getAll(),
+    })
+
+    const filters: DataTableFilterOption<typeof users>[] = React.useMemo(() => [
+        {
+            id: "roles",
+            label: "Role",
+            options: (roles || []).map((role: { name: string }) => ({
+                label: role.name,
+                value: role.name.toLowerCase(),
+            })),
+        },
+        {
+            id: "family",
+            label: "Family",
+            options: (families || []).map((family: { name: string }) => ({
+                label: family.name,
+                value: family.name.toLowerCase(),
+            })),
+        },
+        {
+            id: "zone",
+            label: "Zone",
+            options: (zones || []).map((zone: { name: string }) => ({
+                label: zone.name,
+                value: zone.name.toLowerCase(),
+            })),
+        },
+        {
+            id: "currentMinistry",
+            label: "Ministry",
+            options: (ministries || []).map((ministry: { name: string }) => ({
+                label: ministry.name,
+                value: ministry.name.toLowerCase(),
+            })),
+        },
+        {
+            id: "marriageStatus",
+            label: "Marriage Status",
+            options: [
+                { label: "Single", value: "single" },
+                { label: "Married", value: "married" },
+                { label: "Widow", value: "widow" },
+                { label: "Divorced", value: "divorced" },
+            ],
+        },
+        {
+            id: "baptizedYear",
+            label: "Baptized",
+            options: [
+                { label: "Baptized", value: "baptized" },
+                { label: "Not Baptized", value: "not-baptized" },
+            ],
+        },
+        {
+            id: "fromOtherChurch",
+            label: "From Other Church",
+            options: [
+                { label: "Yes", value: "yes" },
+                { label: "No", value: "no" },
+            ],
+        },
+    ], [roles, families, zones, ministries])
 
     return (
         <SidebarProvider
@@ -39,6 +125,7 @@ export default function UsersPage() {
                                     data={users || []}
                                     headerActions={<UserForm />}
                                     isLoading={isLoading}
+                                    filters={filters}
                                 />
                             </div>
                         </div>

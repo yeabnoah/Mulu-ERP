@@ -37,6 +37,12 @@ export type User = {
     image?: string | null
     roles?: { role: { name: string }, roleId: string }[]
     family?: { name: string, description?: string | null } | null
+    zone?: { name: string } | null
+    currentMinistry?: { name: string } | null
+    marriageStatus?: string | null
+    educationStatus?: string | null
+    baptizedYear?: number | null
+    fromOtherChurch?: boolean
 }
 
 function TableCellViewer({ item }: { item: User }) {
@@ -44,9 +50,9 @@ function TableCellViewer({ item }: { item: User }) {
     return (
         <Drawer direction={isMobile ? "bottom" : "right"}>
             <DrawerTrigger asChild>
-                <Button variant="link" className="text-foreground w-fit px-0 text-left">
+                <span className="text-foreground w-fit px-0 text-left cursor-pointer hover:underline">
                     {item.name}
-                </Button>
+                </span>
             </DrawerTrigger>
             <DrawerContent>
                 <DrawerHeader className="gap-1">
@@ -207,6 +213,10 @@ export const columns: ColumnDef<User>[] = [
                 )}
             </div>
         ),
+        filterFn: (row, id, value) => {
+            const roles = row.original.roles?.map((ur) => ur.role.name.toLowerCase()) || []
+            return roles.some((role) => role.includes(value.toLowerCase()))
+        },
     },
     {
         accessorKey: "family",
@@ -216,6 +226,82 @@ export const columns: ColumnDef<User>[] = [
                 {row.original.family?.name || "N/A"}
             </div>
         ),
+        filterFn: (row, id, value) => {
+            const familyName = row.original.family?.name?.toLowerCase() || ""
+            return familyName.includes(value.toLowerCase())
+        },
+    },
+    {
+        accessorKey: "zone",
+        header: "Zone",
+        cell: ({ row }) => (
+            <div className="text-muted-foreground">
+                {row.original.zone?.name || "N/A"}
+            </div>
+        ),
+        filterFn: (row, id, value) => {
+            const zoneName = row.original.zone?.name?.toLowerCase() || ""
+            return zoneName.includes(value.toLowerCase())
+        },
+    },
+    {
+        accessorKey: "currentMinistry",
+        header: "Ministry",
+        cell: ({ row }) => (
+            <div className="text-muted-foreground">
+                {row.original.currentMinistry?.name || "N/A"}
+            </div>
+        ),
+        filterFn: (row, id, value) => {
+            const ministryName = row.original.currentMinistry?.name?.toLowerCase() || ""
+            return ministryName.includes(value.toLowerCase())
+        },
+    },
+    {
+        accessorKey: "marriageStatus",
+        header: "Marriage Status",
+        cell: ({ row }) => (
+            <div className="text-muted-foreground capitalize">
+                {row.original.marriageStatus?.toLowerCase() || "N/A"}
+            </div>
+        ),
+    },
+    {
+        accessorKey: "educationStatus",
+        header: "Education",
+        cell: ({ row }) => (
+            <div className="text-muted-foreground">
+                {row.original.educationStatus || "N/A"}
+            </div>
+        ),
+    },
+    {
+        accessorKey: "baptizedYear",
+        header: "Baptized",
+        cell: ({ row }) => (
+            <div className="text-muted-foreground">
+                {row.original.baptizedYear ? `Yes (${row.original.baptizedYear})` : "No"}
+            </div>
+        ),
+        filterFn: (row, id, value) => {
+            if (value === "baptized") return row.original.baptizedYear != null
+            if (value === "not-baptized") return row.original.baptizedYear == null
+            return true
+        },
+    },
+    {
+        accessorKey: "fromOtherChurch",
+        header: "From Other Church",
+        cell: ({ row }) => (
+            <div className="text-muted-foreground">
+                {row.original.fromOtherChurch ? "Yes" : "No"}
+            </div>
+        ),
+        filterFn: (row, id, value) => {
+            if (value === "yes") return row.original.fromOtherChurch === true
+            if (value === "no") return row.original.fromOtherChurch === false
+            return true
+        },
     },
     {
         id: "actions",
