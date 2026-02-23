@@ -8,8 +8,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { Link, usePathname } from "@/i18n/navigation"
 import { Sun, Moon } from "lucide-react"
 import { useTheme } from "next-themes"
 

@@ -1,10 +1,11 @@
 "use client"
 
 import * as React from "react"
+import { useTranslations } from "next-intl"
 
-import { NavDocuments } from "@/components/nav-documents"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
+import { LocaleSwitcher } from "@/components/locale-switcher"
 import { NavUser } from "@/components/nav-user"
 import {
   Sidebar,
@@ -15,57 +16,37 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { LayoutDashboardIcon, ListIcon, FolderIcon, UsersIcon, Settings2Icon, CircleHelpIcon, DatabaseIcon, FileChartColumnIcon, CommandIcon, ShieldIcon } from "lucide-react"
+import { Link } from "@/i18n/navigation"
+import {
+  LayoutDashboardIcon,
+  ListIcon,
+  FolderIcon,
+  UsersIcon,
+  DatabaseIcon,
+  CommandIcon,
+  ShieldIcon,
+} from "lucide-react"
 
-const data = {
-  navMain: [
+export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const t = useTranslations("nav")
+  const tCommon = useTranslations("common")
+
+  const navMain = [
+    { title: t("dashboard"), url: "/dashboard", icon: <LayoutDashboardIcon /> },
+    { title: t("users"), url: "/users", icon: <UsersIcon /> },
+    { title: t("ministries"), url: "/ministries", icon: <ListIcon /> },
     {
-      title: "Dashboard",
-      url: "/dashboard",
-      icon: <LayoutDashboardIcon />,
-    },
-    {
-      title: "Users",
-      url: "/users",
-      icon: <UsersIcon />,
-    },
-    {
-      title: "Ministries",
-      url: "/ministries",
-      icon: <ListIcon />,
-    },
-    {
-      title: "Ministry Admin",
+      title: t("ministryAdmin"),
       url: "/ministries-admin",
       icon: <ShieldIcon />,
     },
-    {
-      title: "Zones",
-      url: "/zones",
-      icon: <DatabaseIcon />,
-    },
-    {
-      title: "Families",
-      url: "/families",
-      icon: <FolderIcon />,
-    },
-  ],
-  navSecondary: [
-    // {
-    //   title: "Settings",
-    //   url: "/settings",
-    //   icon: <Settings2Icon />,
-    // },
-    // {
-    //   title: "Get Help",
-    //   url: "/help",
-    //   icon: <CircleHelpIcon />,
-    // },
-  ],
-}
-import Link from "next/link"
+    { title: t("zones"), url: "/zones", icon: <DatabaseIcon /> },
+    { title: t("families"), url: "/families", icon: <FolderIcon /> },
+  ]
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const navSecondary: { title: string; url: string; icon: React.ReactNode }[] =
+    []
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -76,17 +57,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               render={<Link href="/dashboard" />}
             >
               <CommandIcon className="size-5!" />
-              <span className="text-base font-semibold">Mulu ERP</span>
+              <span className="text-base font-semibold">
+                {tCommon("appName")}
+              </span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        {/* <NavDocuments items={data.documents} /> */}
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <NavMain items={navMain} />
+        <NavSecondary items={navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
+        <div className="px-2 py-1">
+          <LocaleSwitcher />
+        </div>
         <NavUser />
       </SidebarFooter>
     </Sidebar>

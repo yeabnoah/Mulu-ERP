@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useTranslations } from "next-intl"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { ministryAdminService } from "@/services/ministry-admin.service"
 import { userService } from "@/services/user.service"
@@ -68,6 +69,8 @@ function RequestActions({ request, onApprove, onReject }: {
 }
 
 export default function MinistryAdminPage() {
+  const t = useTranslations("ministryAdmin")
+  const tCommon = useTranslations("common")
   const queryClient = useQueryClient()
   const [selectedMinistry, setSelectedMinistry] = React.useState<string>("")
   const [selectedUser, setSelectedUser] = React.useState<string>("")
@@ -109,14 +112,14 @@ export default function MinistryAdminPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ministries-admin"] })
-      toast.success("Ministry admin added. They can log in at My Ministry with their email and the password you set.")
+      toast.success(t("adminAdded"))
       setAddAdminOpen(false)
       setSelectedMinistry("")
       setSelectedUser("")
       setAdminPassword("")
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || "Failed to add admin")
+      toast.error(error.response?.data?.error || t("failedAddAdmin"))
     },
   })
 
@@ -126,10 +129,10 @@ export default function MinistryAdminPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ministry-requests"] })
       queryClient.invalidateQueries({ queryKey: ["ministries-admin"] })
-      toast.success("Request approved")
+      toast.success(t("requestApproved"))
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || "Failed to approve request")
+      toast.error(error.response?.data?.error || t("failedApprove"))
     },
   })
 
@@ -138,20 +141,20 @@ export default function MinistryAdminPage() {
     mutationFn: (requestId: string) => ministryAdminService.rejectRequest(requestId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ministry-requests"] })
-      toast.success("Request rejected")
+      toast.success(t("requestRejected"))
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || "Failed to reject request")
+      toast.error(error.response?.data?.error || t("failedReject"))
     },
   })
 
   const handleAddAdmin = () => {
     if (!selectedMinistry || !selectedUser) {
-      toast.error("Please select a ministry and user")
+      toast.error(t("selectMinistryAndUser"))
       return
     }
     if (!adminPassword || adminPassword.length < 8) {
-      toast.error("Please set a password (at least 8 characters) so they can log in to My Ministry")
+      toast.error(t("passwordRequired"))
       return
     }
     addAdminMutation.mutate({
@@ -180,27 +183,27 @@ export default function MinistryAdminPage() {
     >
       <AppSidebar variant="inset" />
       <SidebarInset>
-        <SiteHeader title="Ministry Administration" />
+        <SiteHeader title={t("title")} />
         <div className="flex flex-1 flex-col gap-6 p-6">
           {/* Pending Requests Section */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Pending Join Requests</CardTitle>
+              <CardTitle>{t("pendingRequests")}</CardTitle>
               {pendingRequests && pendingRequests.length > 0 && (
-                <Badge variant="destructive">{pendingRequests.length} pending</Badge>
+                <Badge variant="destructive">{pendingRequests.length} {t("pending")}</Badge>
               )}
             </CardHeader>
             <CardContent>
               {loadingRequests ? (
-                <div className="text-center py-4 text-muted-foreground">Loading...</div>
+                <div className="text-center py-4 text-muted-foreground">{tCommon("loading")}</div>
               ) : pendingRequests && pendingRequests.length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>User</TableHead>
-                      <TableHead>Ministry</TableHead>
-                      <TableHead>Requested</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead>{t("user")}</TableHead>
+                      <TableHead>{t("ministry")}</TableHead>
+                      <TableHead>{t("requested")}</TableHead>
+                      <TableHead className="text-right">{tCommon("actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -214,7 +217,7 @@ export default function MinistryAdminPage() {
                                 {request.user?.name?.[0] || "?"}
                               </AvatarFallback>
                             </Avatar>
-                            <span>{request.user?.name || "Unknown"}</span>
+                            <span>{request.user?.name || t("unknown")}</span>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -236,7 +239,7 @@ export default function MinistryAdminPage() {
                 </Table>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  No pending requests
+                  {t("noPendingRequests")}
                 </div>
               )}
             </CardContent>
@@ -245,27 +248,27 @@ export default function MinistryAdminPage() {
           {/* Ministry Admins Section */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Ministry Administrators</CardTitle>
+              <CardTitle>{t("ministryAdministrators")}</CardTitle>
               <Dialog open={addAdminOpen} onOpenChange={setAddAdminOpen}>
                 <DialogTrigger asChild>
                   <Button size="sm">
                     <UserPlusIcon className="mr-2 h-4 w-4" />
-                    Add Admin
+                    {t("addAdmin")}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Add Ministry Admin</DialogTitle>
+                    <DialogTitle>{t("addMinistryAdmin")}</DialogTitle>
                     <DialogDescription>
-                      Assign a user as ministry admin and set their login password so they can sign in at My Ministry.
+                      {t("addAdminDescription")}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-4 items-center gap-4">
-                      <label className="text-right">Ministry</label>
+                      <label className="text-right">{t("ministry")}</label>
                       <Select value={selectedMinistry} onValueChange={(v) => setSelectedMinistry(v ?? "")}>
                         <SelectTrigger className="col-span-3">
-                          <SelectValue placeholder="Select ministry" />
+                          <SelectValue placeholder={t("selectMinistry")} />
                         </SelectTrigger>
                         <SelectContent>
                           {ministries?.map((ministry: any) => (
@@ -277,10 +280,10 @@ export default function MinistryAdminPage() {
                       </Select>
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
-                      <label className="text-right">User</label>
+                      <label className="text-right">{t("user")}</label>
                       <Select value={selectedUser} onValueChange={(v) => setSelectedUser(v ?? "")}>
                         <SelectTrigger className="col-span-3">
-                          <SelectValue placeholder="Select user" />
+                          <SelectValue placeholder={t("selectUser")} />
                         </SelectTrigger>
                         <SelectContent>
                           {availableUsers?.map((user: any) => (
@@ -293,31 +296,31 @@ export default function MinistryAdminPage() {
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="admin-password" className="text-right">
-                        Login password
+                        {t("loginPassword")}
                       </Label>
                       <Input
                         id="admin-password"
                         type="password"
-                        placeholder="Min. 8 characters (for My Ministry login)"
+                        placeholder={t("passwordPlaceholder")}
                         className="col-span-3"
                         value={adminPassword}
                         onChange={(e) => setAdminPassword(e.target.value)}
                         minLength={8}
                       />
                       <p className="col-span-3 col-start-2 text-xs text-muted-foreground">
-                        They will use their email + this password to sign in at My Ministry.
+                        {t("passwordHint")}
                       </p>
                     </div>
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setAddAdminOpen(false)}>
-                      Cancel
+                      {tCommon("cancel")}
                     </Button>
                     <Button
                       onClick={handleAddAdmin}
                       disabled={addAdminMutation.isPending || !adminPassword || adminPassword.length < 8}
                     >
-                      {addAdminMutation.isPending ? "Adding..." : "Add Admin"}
+                      {addAdminMutation.isPending ? t("adding") : t("addAdmin")}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -325,7 +328,7 @@ export default function MinistryAdminPage() {
             </CardHeader>
             <CardContent>
               {loadingMinistries ? (
-                <div className="text-center py-4 text-muted-foreground">Loading...</div>
+                <div className="text-center py-4 text-muted-foreground">{tCommon("loading")}</div>
               ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {ministries?.map((ministry: any) => (
@@ -351,7 +354,7 @@ export default function MinistryAdminPage() {
                               </div>
                             ))
                           ) : (
-                            <span className="text-sm text-muted-foreground">No admins assigned</span>
+                            <span className="text-sm text-muted-foreground">{t("noAdminsAssigned")}</span>
                           )}
                         </div>
                       </CardContent>

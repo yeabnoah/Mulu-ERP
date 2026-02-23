@@ -1,8 +1,9 @@
 "use client"
 
 import * as React from "react"
+import { useTranslations } from "next-intl"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { useRouter } from "next/navigation"
+import { Link, useRouter } from "@/i18n/navigation"
 import { authClient } from "@/lib/auth-client"
 import { portalService } from "@/services/portal.service"
 import { PortalLayout } from "@/components/portal-layout"
@@ -54,6 +55,9 @@ import { UserPlusIcon, XIcon, UsersIcon, Church, Heart, Briefcase, Building2 } f
 const CHART_COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d"]
 
 function MinistryPortalLoginForm() {
+  const t = useTranslations("myMinistry")
+  const tPastor = useTranslations("pastor")
+  const tAuth = useTranslations("auth")
   const router = useRouter()
   const [email, setEmail] = React.useState("")
   const [password, setPassword] = React.useState("")
@@ -72,7 +76,7 @@ function MinistryPortalLoginForm() {
             router.refresh()
           },
           onError: (err) => {
-            toast.error(err.error?.message ?? "Sign in failed")
+            toast.error(err.error?.message ?? tPastor("signInFailed"))
             setSubmitting(false)
           },
         },
@@ -89,15 +93,15 @@ function MinistryPortalLoginForm() {
           <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-full bg-primary/10">
             <Church className="size-6 text-primary" />
           </div>
-          <CardTitle className="text-xl">My Ministry</CardTitle>
+          <CardTitle className="text-xl">{t("title")}</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Sign in with the email and password set by your administrator.
+            {tPastor("signInHint")}
           </p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="portal-email">Email</Label>
+              <Label htmlFor="portal-email">{tAuth("email")}</Label>
               <Input
                 id="portal-email"
                 type="email"
@@ -108,7 +112,7 @@ function MinistryPortalLoginForm() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="portal-password">Password</Label>
+              <Label htmlFor="portal-password">{tAuth("password")}</Label>
               <Input
                 id="portal-password"
                 type="password"
@@ -119,10 +123,10 @@ function MinistryPortalLoginForm() {
               />
             </div>
             <Button type="submit" className="w-full" disabled={submitting}>
-              {submitting ? "Signing in..." : "Sign in"}
+              {submitting ? tPastor("signingIn") : tAuth("signIn")}
             </Button>
             <p className="text-center text-xs text-muted-foreground">
-              <a href="/login" className="underline hover:text-foreground">Full admin? Sign in here</a>
+              <Link href="/login" className="underline hover:text-foreground">{tPastor("fullAdminSignIn")}</Link>
             </p>
           </form>
         </CardContent>
@@ -132,6 +136,9 @@ function MinistryPortalLoginForm() {
 }
 
 export default function MinistryDashboardPage() {
+  const t = useTranslations("myMinistry")
+  const tDashboard = useTranslations("dashboard")
+  const tCommon = useTranslations("common")
   const queryClient = useQueryClient()
   const [addMemberOpen, setAddMemberOpen] = React.useState(false)
   const [selectedUserId, setSelectedUserId] = React.useState("")
@@ -184,12 +191,12 @@ export default function MinistryDashboardPage() {
       portalService.requestJoin(ministryId, userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["portal"] })
-      toast.success("Request sent to admin for approval")
+      toast.success(t("requestSent"))
       setAddMemberOpen(false)
       setSelectedUserId("")
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || "Failed to send request")
+      toast.error(error.response?.data?.error || t("failedSendRequest"))
     },
   })
 
@@ -198,10 +205,10 @@ export default function MinistryDashboardPage() {
       portalService.updateMemberRole(ministryId, userId, role),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["portal"] })
-      toast.success("Role updated")
+      toast.success(t("roleUpdated"))
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || "Failed to update role")
+      toast.error(error.response?.data?.error || t("failedUpdateRole"))
     },
   })
 
@@ -210,16 +217,16 @@ export default function MinistryDashboardPage() {
       portalService.removeMember(ministryId, userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["portal"] })
-      toast.success("Member removed")
+      toast.success(t("memberRemoved"))
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || "Failed to remove member")
+      toast.error(error.response?.data?.error || t("failedRemoveMember"))
     },
   })
 
   const handleAddMember = () => {
     if (!selectedMinistryId || !selectedUserId) {
-      toast.error("Please select a user")
+      toast.error(t("pleaseSelectUser"))
       return
     }
     requestJoinMutation.mutate({
@@ -230,9 +237,9 @@ export default function MinistryDashboardPage() {
 
   if (sessionPending) {
     return (
-      <PortalLayout title="My Ministry">
+      <PortalLayout title={t("title")}>
         <div className="flex flex-1 items-center justify-center p-6">
-          <p className="text-muted-foreground">Loading...</p>
+          <p className="text-muted-foreground">{tCommon("loading")}</p>
         </div>
       </PortalLayout>
     )
@@ -240,7 +247,7 @@ export default function MinistryDashboardPage() {
 
   if (!userId) {
     return (
-      <PortalLayout title="My Ministry">
+      <PortalLayout title={t("title")}>
         <MinistryPortalLoginForm />
       </PortalLayout>
     )
@@ -248,14 +255,14 @@ export default function MinistryDashboardPage() {
 
   if (!loadingMinistries && myMinistries.length === 0) {
     return (
-      <PortalLayout title="My Ministry">
+      <PortalLayout title={t("title")}>
         <div className="flex flex-1 items-center justify-center p-6">
           <Card className="w-full max-w-md">
             <CardContent className="pt-6 text-center">
               <UsersIcon className="mx-auto h-12 w-12 text-muted-foreground" />
-              <h3 className="mt-4 text-lg font-semibold">No Ministry Assigned</h3>
+              <h3 className="mt-4 text-lg font-semibold">{t("noMinistryAssigned")}</h3>
               <p className="mt-2 text-sm text-muted-foreground">
-                You are not assigned to any ministry yet. Contact your administrator to be added as a member or leader.
+                {t("noMinistryDescription")}
               </p>
             </CardContent>
           </Card>
@@ -265,12 +272,12 @@ export default function MinistryDashboardPage() {
   }
 
   return (
-    <PortalLayout title="My Ministry">
+    <PortalLayout title={t("title")}>
         <div className="flex flex-1 flex-col gap-6 p-6">
           {/* Ministry Selector */}
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">Select Ministry</CardTitle>
+              <CardTitle className="text-base">{t("selectMinistry")}</CardTitle>
             </CardHeader>
             <CardContent>
               <Select
@@ -278,7 +285,7 @@ export default function MinistryDashboardPage() {
                 onValueChange={(v) => setSelectedMinistryId(v ?? "")}
               >
                 <SelectTrigger className="w-full md:w-80">
-                  <SelectValue placeholder="Select a ministry" />
+                  <SelectValue placeholder={t("selectAMinistry")} />
                 </SelectTrigger>
                 <SelectContent>
                   {myMinistries.map((ministry) => (
@@ -297,7 +304,7 @@ export default function MinistryDashboardPage() {
               <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Total Members</CardTitle>
+                    <CardTitle className="text-sm font-medium">{t("totalMembers")}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
@@ -308,7 +315,7 @@ export default function MinistryDashboardPage() {
                 {isMinistryLeader && (
                   <Card>
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium">Pending Requests</CardTitle>
+                      <CardTitle className="text-sm font-medium">{t("pendingRequests")}</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">
@@ -319,7 +326,7 @@ export default function MinistryDashboardPage() {
                 )}
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Your Role</CardTitle>
+                    <CardTitle className="text-sm font-medium">{t("yourRole")}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <Badge variant="outline" className="text-sm">
@@ -336,14 +343,14 @@ export default function MinistryDashboardPage() {
                     <Card>
                       <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium flex items-center gap-2">
-                          <Heart className="h-4 w-4" /> Baptized
+                          <Heart className="h-4 w-4" /> {t("baptized")}
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="text-2xl font-bold">{ministryStats.basic?.baptizedCount ?? 0}</div>
                         <p className="text-xs text-muted-foreground">
                           {ministryStats.basic?.totalMembers
-                            ? `${Math.round(((ministryStats.basic.baptizedCount ?? 0) / ministryStats.basic.totalMembers) * 100)}% of members`
+                            ? `${Math.round(((ministryStats.basic.baptizedCount ?? 0) / ministryStats.basic.totalMembers) * 100)}% ${t("ofMembers")}`
                             : ""}
                         </p>
                       </CardContent>
@@ -351,7 +358,7 @@ export default function MinistryDashboardPage() {
                     <Card>
                       <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium flex items-center gap-2">
-                          <Church className="h-4 w-4" /> From other church
+                          <Church className="h-4 w-4" /> {t("fromOtherChurch")}
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
@@ -361,14 +368,14 @@ export default function MinistryDashboardPage() {
                     <Card>
                       <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium flex items-center gap-2">
-                          <Briefcase className="h-4 w-4" /> Employed
+                          <Briefcase className="h-4 w-4" /> {t("employed")}
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="text-2xl font-bold">{ministryStats.basic?.employedCount ?? 0}</div>
                         <p className="text-xs text-muted-foreground">
                           {ministryStats.basic?.totalMembers
-                            ? `${Math.round(((ministryStats.basic.employedCount ?? 0) / ministryStats.basic.totalMembers) * 100)}% of members`
+                            ? `${Math.round(((ministryStats.basic.employedCount ?? 0) / ministryStats.basic.totalMembers) * 100)}% ${t("ofMembers")}`
                             : ""}
                         </p>
                       </CardContent>
@@ -376,7 +383,7 @@ export default function MinistryDashboardPage() {
                     <Card>
                       <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium flex items-center gap-2">
-                          <Building2 className="h-4 w-4" /> Not baptized
+                          <Building2 className="h-4 w-4" /> {t("notBaptized")}
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
@@ -388,18 +395,18 @@ export default function MinistryDashboardPage() {
                   <div className="grid gap-6 lg:grid-cols-2">
                     <Card>
                       <CardHeader>
-                        <CardTitle>Marriage status</CardTitle>
-                        <p className="text-sm text-muted-foreground">Distribution by marriage status</p>
+                        <CardTitle>{t("marriageStatus")}</CardTitle>
+                        <p className="text-sm text-muted-foreground">{t("marriageStatusDesc")}</p>
                       </CardHeader>
                       <CardContent className="h-[280px]">
                         <ResponsiveContainer width="100%" height="100%">
                           <PieChart>
                             <Pie
                               data={[
-                                { name: "Single", value: ministryStats.marriageStatus?.single ?? 0 },
-                                { name: "Married", value: ministryStats.marriageStatus?.married ?? 0 },
-                                { name: "Widow", value: ministryStats.marriageStatus?.widow ?? 0 },
-                                { name: "Divorced", value: ministryStats.marriageStatus?.divorced ?? 0 },
+                                { name: tDashboard("single"), value: ministryStats.marriageStatus?.single ?? 0 },
+                                { name: tDashboard("married"), value: ministryStats.marriageStatus?.married ?? 0 },
+                                { name: tDashboard("widow"), value: ministryStats.marriageStatus?.widow ?? 0 },
+                                { name: tDashboard("divorced"), value: ministryStats.marriageStatus?.divorced ?? 0 },
                               ].filter((d) => d.value > 0)}
                               cx="50%"
                               cy="50%"
@@ -419,16 +426,16 @@ export default function MinistryDashboardPage() {
                     </Card>
                     <Card>
                       <CardHeader>
-                        <CardTitle>Church status</CardTitle>
-                        <p className="text-sm text-muted-foreground">Baptized vs not baptized</p>
+                        <CardTitle>{t("churchStatus")}</CardTitle>
+                        <p className="text-sm text-muted-foreground">{t("churchStatusDesc")}</p>
                       </CardHeader>
                       <CardContent className="h-[280px]">
                         <ResponsiveContainer width="100%" height="100%">
                           <PieChart>
                             <Pie
                               data={[
-                                { name: "Baptized", value: ministryStats.basic?.baptizedCount ?? 0 },
-                                { name: "Not baptized", value: ministryStats.basic?.notBaptizedCount ?? 0 },
+                                { name: tDashboard("baptized"), value: ministryStats.basic?.baptizedCount ?? 0 },
+                                { name: tDashboard("notBaptized"), value: ministryStats.basic?.notBaptizedCount ?? 0 },
                               ].filter((d) => d.value > 0)}
                               cx="50%"
                               cy="50%"
@@ -450,8 +457,8 @@ export default function MinistryDashboardPage() {
                   <div className="grid gap-6 lg:grid-cols-2">
                     <Card>
                       <CardHeader>
-                        <CardTitle>Education</CardTitle>
-                        <p className="text-sm text-muted-foreground">By education status</p>
+                        <CardTitle>{t("education")}</CardTitle>
+                        <p className="text-sm text-muted-foreground">{t("educationByStatus")}</p>
                       </CardHeader>
                       <CardContent className="h-[280px]">
                         <ResponsiveContainer width="100%" height="100%">
@@ -463,15 +470,15 @@ export default function MinistryDashboardPage() {
                             <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                             <YAxis />
                             <Tooltip />
-                            <Bar dataKey="value" fill={CHART_COLORS[0]} name="Members" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="value" fill={CHART_COLORS[0]} name={tDashboard("members")} radius={[4, 4, 0, 0]} />
                           </BarChart>
                         </ResponsiveContainer>
                       </CardContent>
                     </Card>
                     <Card>
                       <CardHeader>
-                        <CardTitle>Age groups</CardTitle>
-                        <p className="text-sm text-muted-foreground">Distribution by age</p>
+                        <CardTitle>{t("ageGroups")}</CardTitle>
+                        <p className="text-sm text-muted-foreground">{t("ageGroupsDesc")}</p>
                       </CardHeader>
                       <CardContent className="h-[280px]">
                         <ResponsiveContainer width="100%" height="100%">
@@ -483,7 +490,7 @@ export default function MinistryDashboardPage() {
                             <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                             <YAxis />
                             <Tooltip />
-                            <Bar dataKey="value" fill={CHART_COLORS[2]} name="Members" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="value" fill={CHART_COLORS[2]} name={tDashboard("members")} radius={[4, 4, 0, 0]} />
                           </BarChart>
                         </ResponsiveContainer>
                       </CardContent>
@@ -495,26 +502,26 @@ export default function MinistryDashboardPage() {
               {/* Members Table */}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle>Members</CardTitle>
+                  <CardTitle>{t("members")}</CardTitle>
                   {isMinistryLeader && (
                     <Button size="sm" onClick={() => setAddMemberOpen(true)}>
                       <UserPlusIcon className="mr-2 h-4 w-4" />
-                      Add Member
+                      {t("addMember")}
                     </Button>
                   )}
                 </CardHeader>
                 <CardContent>
                   {loadingMembers ? (
-                    <div className="text-center py-4 text-muted-foreground">Loading...</div>
+                    <div className="text-center py-4 text-muted-foreground">{tCommon("loading")}</div>
                   ) : members && members.length > 0 ? (
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Member</TableHead>
-                          <TableHead>Role</TableHead>
-                          <TableHead>Joined</TableHead>
+                          <TableHead>{t("member")}</TableHead>
+                          <TableHead>{t("role")}</TableHead>
+                          <TableHead>{t("joined")}</TableHead>
                           {isMinistryLeader && (
-                            <TableHead className="text-right">Actions</TableHead>
+                            <TableHead className="text-right">{tCommon("actions")}</TableHead>
                           )}
                         </TableRow>
                       </TableHeader>
@@ -559,8 +566,8 @@ export default function MinistryDashboardPage() {
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="MEMBER">Member</SelectItem>
-                                      <SelectItem value="LEADER">Leader</SelectItem>
+                                      <SelectItem value="MEMBER">{t("memberRole")}</SelectItem>
+                                      <SelectItem value="LEADER">{t("leaderRole")}</SelectItem>
                                     </SelectContent>
                                   </Select>
                                   <Button
@@ -585,7 +592,7 @@ export default function MinistryDashboardPage() {
                     </Table>
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
-                      No members yet
+                      {t("noMembersYet")}
                     </div>
                   )}
                 </CardContent>
@@ -597,17 +604,17 @@ export default function MinistryDashboardPage() {
           <Dialog open={addMemberOpen} onOpenChange={setAddMemberOpen}>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Add Member</DialogTitle>
+                <DialogTitle>{t("addMemberTitle")}</DialogTitle>
                 <DialogDescription>
-                  Select an existing user to request for this ministry. The request will be sent to the main admin for approval.
+                  {t("addMemberDescription")}
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <label className="text-right">User</label>
+                  <label className="text-right">{t("userLabel")}</label>
                   <Select value={selectedUserId} onValueChange={(v) => setSelectedUserId(v ?? "")}>
                     <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Select a user" />
+                      <SelectValue placeholder={t("selectUser")} />
                     </SelectTrigger>
                     <SelectContent>
                       {availableUsers?.map((user: { id: string; name: string }) => (
@@ -621,13 +628,13 @@ export default function MinistryDashboardPage() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setAddMemberOpen(false)}>
-                  Cancel
+                  {tCommon("cancel")}
                 </Button>
                 <Button
                   onClick={handleAddMember}
                   disabled={!selectedUserId || requestJoinMutation.isPending}
                 >
-                  {requestJoinMutation.isPending ? "Sending..." : "Send Request"}
+                  {requestJoinMutation.isPending ? t("sending") : t("sendRequest")}
                 </Button>
               </DialogFooter>
             </DialogContent>

@@ -16,8 +16,8 @@ import {
 } from "@/components/ui/sidebar"
 import { MoreHorizontalIcon, FolderIcon, ShareIcon, Trash2Icon } from "lucide-react"
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { Link } from "@/i18n/navigation"
+import { usePathname } from "@/i18n/navigation"
 
 export function NavDocuments({
   items,

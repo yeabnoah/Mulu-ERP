@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useTranslations } from "next-intl"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { userService } from "@/services/user.service"
 import { roleService } from "@/services/role.service"
@@ -13,7 +14,7 @@ import { SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { PlusIcon, Trash2Icon, UserCogIcon } from "lucide-react"
-import { columns } from "./columns"
+import { useUserColumns } from "./columns"
 import { UserForm } from "@/components/forms/user-form"
 import { toast } from "sonner"
 import {
@@ -29,6 +30,9 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function UsersPage() {
+    const t = useTranslations("users")
+    const tCommon = useTranslations("common")
+    const columns = useUserColumns()
     const queryClient = useQueryClient()
     const [selectedUsers, setSelectedUsers] = React.useState<any[]>([])
     const [bulkPromoteOpen, setBulkPromoteOpen] = React.useState(false)
@@ -65,11 +69,11 @@ export default function UsersPage() {
         mutationFn: (ids: string[]) => userService.bulkDelete(ids),
         onSuccess: (data, ids) => {
             queryClient.invalidateQueries({ queryKey: ["users"] })
-            toast.success(`${ids.length} users deleted successfully`)
+            toast.success(t("usersDeleted", { count: ids.length }))
             setSelectedUsers([])
         },
         onError: (error: any) => {
-            toast.error(error.response?.data?.error || "Failed to delete users")
+            toast.error(error.response?.data?.error || t("failedDeleteUsers"))
         },
     })
 
@@ -84,21 +88,21 @@ export default function UsersPage() {
         },
         onSuccess: (data, variables) => {
             queryClient.invalidateQueries({ queryKey: ["users"] })
-            toast.success(`${variables.ids.length} users promoted to pastor. They can log in at /pastor with their email and the password you set.`)
+            toast.success(t("usersPromoted", { count: variables.ids.length }))
             setSelectedUsers([])
             setBulkPromoteOpen(false)
             setSelectedZoneId("")
             setBulkPastorPassword("")
         },
         onError: (error: any) => {
-            toast.error(error.response?.data?.error || "Failed to promote users")
+            toast.error(error.response?.data?.error || t("failedPromoteUsers"))
         },
     })
 
     const filters: DataTableFilterOption<typeof users>[] = React.useMemo(() => [
         {
             id: "roles",
-            label: "Role",
+            label: t("role"),
             multiSelect: true,
             options: (roles || []).map((role: { name: string }) => ({
                 label: role.name,
@@ -107,7 +111,7 @@ export default function UsersPage() {
         },
         {
             id: "family",
-            label: "Family",
+            label: t("family"),
             multiSelect: true,
             options: (families || []).map((family: { name: string }) => ({
                 label: family.name,
@@ -116,7 +120,7 @@ export default function UsersPage() {
         },
         {
             id: "zone",
-            label: "Zone",
+            label: t("zone"),
             multiSelect: true,
             options: (zones || []).map((zone: { name: string }) => ({
                 label: zone.name,
@@ -125,7 +129,7 @@ export default function UsersPage() {
         },
         {
             id: "currentMinistry",
-            label: "Ministry",
+            label: t("ministry"),
             multiSelect: true,
             options: (ministries || []).map((ministry: { name: string }) => ({
                 label: ministry.name,
@@ -134,34 +138,34 @@ export default function UsersPage() {
         },
         {
             id: "marriageStatus",
-            label: "Marriage Status",
+            label: t("marriageStatus"),
             multiSelect: true,
             options: [
-                { label: "Single", value: "single" },
-                { label: "Married", value: "married" },
-                { label: "Widow", value: "widow" },
-                { label: "Divorced", value: "divorced" },
+                { label: t("single"), value: "single" },
+                { label: t("married"), value: "married" },
+                { label: t("widow"), value: "widow" },
+                { label: t("divorced"), value: "divorced" },
             ],
         },
         {
             id: "baptizedYear",
-            label: "Baptized",
+            label: t("baptized"),
             multiSelect: true,
             options: [
-                { label: "Baptized", value: "baptized" },
-                { label: "Not Baptized", value: "not-baptized" },
+                { label: t("baptized"), value: "baptized" },
+                { label: t("notBaptized"), value: "not-baptized" },
             ],
         },
         {
             id: "fromOtherChurch",
-            label: "From Other Church",
+            label: t("fromOtherChurch"),
             multiSelect: true,
             options: [
-                { label: "Yes", value: "yes" },
-                { label: "No", value: "no" },
+                { label: t("yes"), value: "yes" },
+                { label: t("no"), value: "no" },
             ],
         },
-    ], [roles, families, zones, ministries])
+    ], [t, roles, families, zones, ministries])
 
     const handleSelectionChange = (selectedRows: any[]) => {
         setSelectedUsers(selectedRows)
@@ -199,7 +203,7 @@ export default function UsersPage() {
                                 {selectedUsers.length > 0 && (
                                     <div className="mb-4 flex items-center gap-2 p-2 bg-muted rounded-lg">
                                         <span className="text-sm font-medium">
-                                            {selectedUsers.length} user(s) selected
+                                            {t("usersSelected", { count: selectedUsers.length })}
                                         </span>
                                         <div className="ml-auto flex gap-2">
                                             <Button
@@ -208,7 +212,7 @@ export default function UsersPage() {
                                                 onClick={() => setBulkPromoteOpen(true)}
                                             >
                                                 <UserCogIcon className="mr-2 h-4 w-4" />
-                                                Promote to Pastor
+                                                {t("promoteToPastor")}
                                             </Button>
                                             <Button
                                                 variant="destructive"
@@ -217,20 +221,20 @@ export default function UsersPage() {
                                                 disabled={bulkDeleteMutation.isPending}
                                             >
                                                 <Trash2Icon className="mr-2 h-4 w-4" />
-                                                {bulkDeleteMutation.isPending ? "Deleting..." : "Delete"}
+                                                {bulkDeleteMutation.isPending ? t("deleting") : tCommon("delete")}
                                             </Button>
                                         </div>
                                     </div>
                                 )}
                                 <DataTable
-                                    title="User Management"
+                                    title={t("title")}
                                     columns={columns}
                                     data={users || []}
                                     headerActions={<UserForm />}
                                     isLoading={isLoading}
                                     filters={filters}
                                     onSelectionChange={handleSelectionChange}
-                                    searchPlaceholder="Search users..."
+                                    searchPlaceholder={t("searchPlaceholder")}
                                 />
                             </div>
                         </div>
@@ -242,19 +246,19 @@ export default function UsersPage() {
             <Sheet open={bulkPromoteOpen} onOpenChange={setBulkPromoteOpen}>
                 <SheetContent>
                     <SheetHeader>
-                        <SheetTitle>Bulk Promote to Pastor</SheetTitle>
+                        <SheetTitle>{t("bulkPromoteTitle")}</SheetTitle>
                         <SheetDescription>
-                            Promote {selectedUsers.length} users to pastor, assign a zone, and set a login password for /pastor.
+                            {t("bulkPromoteDesc", { count: selectedUsers.length })}
                         </SheetDescription>
                     </SheetHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="zone" className="text-right">
-                                Zone
+                                {t("zone")}
                             </Label>
                             <Select value={selectedZoneId} onValueChange={(value) => setSelectedZoneId(value || "")}>
                                 <SelectTrigger className="col-span-3">
-                                    <SelectValue placeholder="Select a zone" />
+                                    <SelectValue placeholder={t("selectZone")} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {zones?.map((zone: any) => (
@@ -267,31 +271,31 @@ export default function UsersPage() {
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="bulk-pastor-password" className="text-right">
-                                Login password
+                                {t("loginPassword")}
                             </Label>
                             <Input
                                 id="bulk-pastor-password"
                                 type="password"
-                                placeholder="Min. 8 characters (same for all)"
+                                placeholder={t("passwordPlaceholder")}
                                 className="col-span-3"
                                 value={bulkPastorPassword}
                                 onChange={(e) => setBulkPastorPassword(e.target.value)}
                                 minLength={8}
                             />
                             <p className="col-span-3 col-start-2 text-xs text-muted-foreground">
-                                Each pastor will sign in at /pastor with their email + this password.
+                                {t("passwordHint")}
                             </p>
                         </div>
                     </div>
                     <SheetFooter>
                         <Button variant="outline" onClick={() => setBulkPromoteOpen(false)}>
-                            Cancel
+                            {tCommon("cancel")}
                         </Button>
                         <Button
                             onClick={handleBulkPromote}
                             disabled={!selectedZoneId || !bulkPastorPassword || bulkPastorPassword.length < 8 || bulkPromoteMutation.isPending}
                         >
-                            {bulkPromoteMutation.isPending ? "Promoting..." : "Promote"}
+                            {bulkPromoteMutation.isPending ? t("promoting") : t("promote")}
                         </Button>
                     </SheetFooter>
                 </SheetContent>

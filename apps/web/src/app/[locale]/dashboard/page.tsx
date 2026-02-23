@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
+import { useRouter } from "@/i18n/navigation"
 import { useQuery } from "@tanstack/react-query"
 import { authClient } from "@/lib/auth-client"
 import { portalService } from "@/services/portal.service"
@@ -64,68 +65,77 @@ function LoadingSkeleton() {
 }
 
 function AdminDashboard({ stats }: { stats: any }) {
-  const marriageData = stats?.marriageStatus ? [
-    { name: "Single", value: stats.marriageStatus.single },
-    { name: "Married", value: stats.marriageStatus.married },
-    { name: "Widow", value: stats.marriageStatus.widow },
-    { name: "Divorced", value: stats.marriageStatus.divorced },
-  ] : []
+  const t = useTranslations("dashboard")
+  const marriageData = stats?.marriageStatus
+    ? [
+        { name: t("single"), value: stats.marriageStatus.single },
+        { name: t("married"), value: stats.marriageStatus.married },
+        { name: t("widow"), value: stats.marriageStatus.widow },
+        { name: t("divorced"), value: stats.marriageStatus.divorced },
+      ]
+    : []
 
-  const educationData = stats?.educationStatus ? Object.entries(stats.educationStatus).map(([name, value]: [string, any]) => ({
-    name,
-    value,
-  })) : []
+  const educationData = stats?.educationStatus
+    ? Object.entries(stats.educationStatus).map(([name, value]: [string, any]) => ({
+        name,
+        value,
+      }))
+    : []
 
-  const zoneData = stats?.zones?.map((z: any) => ({
-    name: z.name,
-    members: z.memberCount,
-    families: z.familyCount,
-  })) || []
+  const zoneData =
+    stats?.zones?.map((z: any) => ({
+      name: z.name,
+      members: z.memberCount,
+      families: z.familyCount,
+    })) || []
 
-  const ministryData = stats?.ministries?.map((m: any) => ({
-    name: m.name,
-    members: m.memberCount,
-  })) || []
+  const ministryData =
+    stats?.ministries?.map((m: any) => ({
+      name: m.name,
+      members: m.memberCount,
+    })) || []
 
-  const ageData = stats?.ageGroups ? Object.entries(stats.ageGroups).map(([name, value]: [string, any]) => ({
-    name,
-    value,
-  })) : []
+  const ageData = stats?.ageGroups
+    ? Object.entries(stats.ageGroups).map(([name, value]: [string, any]) => ({
+        name,
+        value,
+      }))
+    : []
 
   const churchStatusData = [
-    { name: "Baptized", value: stats?.basic?.baptizedCount || 0 },
-    { name: "Not Baptized", value: stats?.basic?.notBaptizedCount || 0 },
+    { name: t("baptized"), value: stats?.basic?.baptizedCount || 0 },
+    { name: t("notBaptized"), value: stats?.basic?.notBaptizedCount || 0 },
   ]
 
   const workData = [
-    { name: "Employed", value: stats?.basic?.employedCount || 0 },
-    { name: "Not Employed", value: stats?.basic?.unemployedCount || 0 },
+    { name: t("employed"), value: stats?.basic?.employedCount || 0 },
+    { name: t("notEmployed"), value: stats?.basic?.unemployedCount || 0 },
   ]
 
   return (
     <div className="space-y-6">
       {/* Basic Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Members" value={stats?.basic?.totalUsers} icon={Users} />
-        <StatCard title="Families" value={stats?.basic?.totalFamilies} icon={Home} />
-        <StatCard title="Ministries" value={stats?.basic?.totalMinistries} icon={Church} />
-        <StatCard title="Zones" value={stats?.basic?.totalZones} icon={MapPin} />
+        <StatCard title={t("totalMembers")} value={stats?.basic?.totalUsers} icon={Users} />
+        <StatCard title={t("families")} value={stats?.basic?.totalFamilies} icon={Home} />
+        <StatCard title={t("ministries")} value={stats?.basic?.totalMinistries} icon={Church} />
+        <StatCard title={t("zones")} value={stats?.basic?.totalZones} icon={MapPin} />
       </div>
 
       {/* Additional Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Children" value={stats?.basic?.totalChildren} icon={Baby} />
-        <StatCard title="Baptized" value={stats?.basic?.baptizedCount} icon={Heart} description={`${Math.round((stats?.basic?.baptizedCount / stats?.basic?.totalUsers) * 100) || 0}% of total`} />
-        <StatCard title="From Other Church" value={stats?.basic?.fromOtherChurch} icon={Church} />
-        <StatCard title="Employed" value={stats?.basic?.employedCount} icon={Briefcase} description={`${Math.round((stats?.basic?.employedCount / stats?.basic?.totalUsers) * 100) || 0}% of total`} />
+        <StatCard title={t("children")} value={stats?.basic?.totalChildren} icon={Baby} />
+        <StatCard title={t("baptized")} value={stats?.basic?.baptizedCount} icon={Heart} description={`${Math.round((stats?.basic?.baptizedCount / stats?.basic?.totalUsers) * 100) || 0}% ${t("ofTotal")}`} />
+        <StatCard title={t("fromOtherChurch")} value={stats?.basic?.fromOtherChurch} icon={Church} />
+        <StatCard title={t("employed")} value={stats?.basic?.employedCount} icon={Briefcase} description={`${Math.round((stats?.basic?.employedCount / stats?.basic?.totalUsers) * 100) || 0}% ${t("ofTotal")}`} />
       </div>
 
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Marriage Status</CardTitle>
-            <CardDescription>Distribution of members by marriage status</CardDescription>
+            <CardTitle>{t("marriageStatus")}</CardTitle>
+            <CardDescription>{t("marriageStatusDesc")}</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -152,8 +162,8 @@ function AdminDashboard({ stats }: { stats: any }) {
 
         <Card>
           <CardHeader>
-            <CardTitle>Church Status</CardTitle>
-            <CardDescription>Baptized vs Not Baptized</CardDescription>
+            <CardTitle>{t("churchStatus")}</CardTitle>
+            <CardDescription>{t("churchStatusDesc")}</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -183,8 +193,8 @@ function AdminDashboard({ stats }: { stats: any }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Members by Zone</CardTitle>
-            <CardDescription>Distribution of members across zones</CardDescription>
+            <CardTitle>{t("membersByZone")}</CardTitle>
+            <CardDescription>{t("membersByZoneDesc")}</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -194,8 +204,8 @@ function AdminDashboard({ stats }: { stats: any }) {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="members" fill="#0088FE" name="Members" />
-                <Bar dataKey="families" fill="#00C49F" name="Families" />
+                <Bar dataKey="members" fill="#0088FE" name={t("members")} />
+                <Bar dataKey="families" fill="#00C49F" name={t("families")} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -203,8 +213,8 @@ function AdminDashboard({ stats }: { stats: any }) {
 
         <Card>
           <CardHeader>
-            <CardTitle>Members by Ministry</CardTitle>
-            <CardDescription>Distribution of members across ministries</CardDescription>
+            <CardTitle>{t("membersByMinistry")}</CardTitle>
+            <CardDescription>{t("membersByMinistryDesc")}</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -213,7 +223,7 @@ function AdminDashboard({ stats }: { stats: any }) {
                 <XAxis type="number" />
                 <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 11 }} />
                 <Tooltip />
-                <Bar dataKey="members" fill="#FFBB28" name="Members" />
+                <Bar dataKey="members" fill="#FFBB28" name={t("members")} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -224,8 +234,8 @@ function AdminDashboard({ stats }: { stats: any }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Education Status</CardTitle>
-            <CardDescription>Distribution by education level</CardDescription>
+            <CardTitle>{t("educationStatus")}</CardTitle>
+            <CardDescription>{t("educationStatusDesc")}</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -252,8 +262,8 @@ function AdminDashboard({ stats }: { stats: any }) {
 
         <Card>
           <CardHeader>
-            <CardTitle>Age Groups</CardTitle>
-            <CardDescription>Distribution by age groups</CardDescription>
+            <CardTitle>{t("ageGroups")}</CardTitle>
+            <CardDescription>{t("ageGroupsDesc")}</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -262,7 +272,7 @@ function AdminDashboard({ stats }: { stats: any }) {
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="value" fill="#82ca9d" name="Members" />
+                <Bar dataKey="value" fill="#82ca9d" name={t("members")} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -273,8 +283,8 @@ function AdminDashboard({ stats }: { stats: any }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Employment Status</CardTitle>
-            <CardDescription>Employed vs Not Employed</CardDescription>
+            <CardTitle>{t("employmentStatus")}</CardTitle>
+            <CardDescription>{t("employmentStatusDesc")}</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -304,12 +314,15 @@ function AdminDashboard({ stats }: { stats: any }) {
 }
 
 function PastorDashboard({ stats, selectedZone }: { stats: any; selectedZone: string }) {
-  const marriageData = stats?.marriageStatus ? [
-    { name: "Single", value: stats.marriageStatus.single },
-    { name: "Married", value: stats.marriageStatus.married },
-    { name: "Widow", value: stats.marriageStatus.widow },
-    { name: "Divorced", value: stats.marriageStatus.divorced },
-  ] : []
+  const t = useTranslations("dashboard")
+  const marriageData = stats?.marriageStatus
+    ? [
+        { name: t("single"), value: stats.marriageStatus.single },
+        { name: t("married"), value: stats.marriageStatus.married },
+        { name: t("widow"), value: stats.marriageStatus.widow },
+        { name: t("divorced"), value: stats.marriageStatus.divorced },
+      ]
+    : []
 
   const educationData = stats?.educationStatus ? Object.entries(stats.educationStatus).map(([name, value]: [string, any]) => ({
     name,
@@ -324,22 +337,22 @@ function PastorDashboard({ stats, selectedZone }: { stats: any; selectedZone: st
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold">Zone: {stats?.zoneName}</h2>
+        <h2 className="text-3xl font-bold">{t("zoneLabel")}: {stats?.zoneName}</h2>
       </div>
 
       {/* Basic Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Members" value={stats?.basic?.totalMembers} icon={Users} />
-        <StatCard title="Families" value={stats?.basic?.totalFamilies} icon={Home} />
-        <StatCard title="Children" value={stats?.basic?.totalChildren} icon={Baby} />
-        <StatCard title="Baptized" value={stats?.basic?.baptizedCount} icon={Heart} />
+        <StatCard title={t("totalMembers")} value={stats?.basic?.totalMembers} icon={Users} />
+        <StatCard title={t("families")} value={stats?.basic?.totalFamilies} icon={Home} />
+        <StatCard title={t("children")} value={stats?.basic?.totalChildren} icon={Baby} />
+        <StatCard title={t("baptized")} value={stats?.basic?.baptizedCount} icon={Heart} />
       </div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Marriage Status</CardTitle>
+            <CardTitle>{t("marriageStatus")}</CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -366,7 +379,7 @@ function PastorDashboard({ stats, selectedZone }: { stats: any; selectedZone: st
 
         <Card>
           <CardHeader>
-            <CardTitle>Education Status</CardTitle>
+            <CardTitle>{t("educationStatus")}</CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -385,7 +398,7 @@ function PastorDashboard({ stats, selectedZone }: { stats: any; selectedZone: st
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Ministry Distribution</CardTitle>
+            <CardTitle>{t("ministryDistribution")}</CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -394,7 +407,7 @@ function PastorDashboard({ stats, selectedZone }: { stats: any; selectedZone: st
                 <XAxis type="number" />
                 <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 11 }} />
                 <Tooltip />
-                <Bar dataKey="members" fill="#00C49F" />
+                <Bar dataKey="members" fill="#00C49F" name={t("members")} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -405,6 +418,7 @@ function PastorDashboard({ stats, selectedZone }: { stats: any; selectedZone: st
 }
 
 export default function Page() {
+  const t = useTranslations("dashboard")
   const router = useRouter()
   const [view, setView] = React.useState<"admin" | "pastor">("admin")
   const [selectedZone, setSelectedZone] = React.useState<string>("")
@@ -458,22 +472,22 @@ export default function Page() {
     >
       <AppSidebar variant="inset" />
       <SidebarInset>
-        <SiteHeader title="Analytics" />
+        <SiteHeader title={t("analytics")} />
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-6 p-6 lg:gap-8 lg:p-8">
             {/* View Toggle */}
             <div className="flex items-center gap-4">
               <Tabs value={view} onValueChange={(v) => setView(v as any)}>
                 <TabsList>
-                  <TabsTrigger value="admin">Admin View</TabsTrigger>
-                  <TabsTrigger value="pastor">Pastor View</TabsTrigger>
+                  <TabsTrigger value="admin">{t("adminView")}</TabsTrigger>
+                  <TabsTrigger value="pastor">{t("pastorView")}</TabsTrigger>
                 </TabsList>
               </Tabs>
 
               {view === "pastor" && (
                 <Select value={selectedZone} onValueChange={(value) => setSelectedZone(value || "")}>
                   <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Select Zone" />
+                    <SelectValue placeholder={t("selectZone")} />
                   </SelectTrigger>
                   <SelectContent>
                     {zones?.map((zone: any) => (
@@ -493,7 +507,7 @@ export default function Page() {
             ) : view === "pastor" && !selectedZone ? (
               <Card>
                 <CardContent className="py-10 text-center text-muted-foreground">
-                  Please select a zone to view pastor dashboard
+                  {t("selectZoneToView")}
                 </CardContent>
               </Card>
             ) : null}

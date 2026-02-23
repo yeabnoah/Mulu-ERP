@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useTranslations } from "next-intl"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { familyService } from "@/services/family.service"
 import { AppSidebar } from "@/components/app-sidebar"
@@ -12,11 +13,15 @@ import { SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { Trash2Icon } from "lucide-react"
-import { columns, type Family } from "./columns"
+import { useFamilyColumns, type Family } from "./columns"
 import { FamilyForm } from "@/components/forms/family-form"
 import { toast } from "sonner"
 
 export default function FamiliesPage() {
+  const t = useTranslations("families")
+  const tCommon = useTranslations("common")
+  const tTable = useTranslations("table")
+  const columns = useFamilyColumns()
   const queryClient = useQueryClient()
   const [selectedFamilies, setSelectedFamilies] = React.useState<Family[]>([])
 
@@ -29,29 +34,29 @@ export default function FamiliesPage() {
     () => [
       {
         id: "status",
-        label: "Status",
+        label: tTable("status"),
         options: [
-          { label: "Active", value: "active" },
-          { label: "Inactive", value: "inactive" },
+          { label: tTable("active"), value: "active" },
+          { label: tTable("inactive"), value: "inactive" },
         ],
       },
     ],
-    []
+    [tTable]
   )
 
   const bulkDeleteMutation = useMutation({
     mutationFn: async (ids: string[]) => {
       await Promise.all(ids.map((id) => familyService.delete(id)))
     },
-    onSuccess: (_data, ids) => {
-      queryClient.invalidateQueries({ queryKey: ["families"] })
-      toast.success(`${ids.length} family(ies) deleted successfully`)
-      setSelectedFamilies([])
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.error || "Failed to delete families")
-    },
-  })
+onSuccess: (_data, ids) => {
+    queryClient.invalidateQueries({ queryKey: ["families"] })
+    toast.success(t("deletedSuccess", { count: ids.length }))
+    setSelectedFamilies([])
+  },
+  onError: (error: any) => {
+    toast.error(error.response?.data?.error || t("failedDelete"))
+  },
+})
 
   const handleSelectionChange = (rows: Family[]) => {
     setSelectedFamilies(rows)
@@ -61,7 +66,7 @@ export default function FamiliesPage() {
     if (selectedFamilies.length === 0) return
     if (
       !confirm(
-        `Are you sure you want to delete ${selectedFamilies.length} family(ies)?`
+        t("confirmDelete", { count: selectedFamilies.length })
       )
     ) {
       return
@@ -89,7 +94,7 @@ export default function FamiliesPage() {
                 {selectedFamilies.length > 0 && (
                   <div className="mb-4 flex items-center gap-2 rounded-lg bg-muted p-2">
                     <span className="text-sm font-medium">
-                      {selectedFamilies.length} family(ies) selected
+                      {t("selectedCount", { count: selectedFamilies.length })}
                     </span>
                     <div className="ml-auto flex gap-2">
                       <Button
@@ -99,21 +104,21 @@ export default function FamiliesPage() {
                         disabled={bulkDeleteMutation.isPending}
                       >
                         <Trash2Icon className="mr-2 h-4 w-4" />
-                        {bulkDeleteMutation.isPending ? "Deleting..." : "Delete"}
+                        {bulkDeleteMutation.isPending ? t("deleting") : tCommon("delete")}
                       </Button>
                     </div>
                   </div>
                 )}
 
                 <DataTable
-                  title="Family Management"
+                  title={t("title")}
                   columns={columns}
                   data={families || []}
                   headerActions={<FamilyForm />}
                   isLoading={isLoading}
                   filters={filters}
                   onSelectionChange={handleSelectionChange}
-                  searchPlaceholder="Search families..."
+                  searchPlaceholder={t("searchPlaceholder")}
                 />
               </div>
             </div>

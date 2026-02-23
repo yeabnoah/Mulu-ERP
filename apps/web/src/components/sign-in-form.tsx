@@ -1,7 +1,8 @@
 "use client";
 
 import { useForm } from "@tanstack/react-form";
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
 import { toast } from "sonner";
 import z from "zod";
 
@@ -14,6 +15,8 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 
 export default function SignInForm() {
+  const t = useTranslations("login");
+  const tAuth = useTranslations("auth");
   const router = useRouter();
   const { isPending } = authClient.useSession();
 
@@ -42,7 +45,7 @@ export default function SignInForm() {
             } catch {
               router.push("/dashboard");
             }
-            toast.success("Sign in successful");
+            toast.success(t("signInSuccess"));
           },
           onError: (error) => {
             toast.error(error.error.message || error.error.statusText);
@@ -52,8 +55,8 @@ export default function SignInForm() {
     },
     validators: {
       onSubmit: z.object({
-        email: z.email("Invalid email address"),
-        password: z.string().min(8, "Password must be at least 8 characters"),
+        email: z.email(t("invalidEmail")),
+        password: z.string().min(8, t("passwordMinLength")),
       }),
     },
   });
@@ -63,8 +66,10 @@ export default function SignInForm() {
   }
 
   return (
-    <div className="mx-auto w-full mt-10 max-w-md p-6">
-      <h1 className="mb-6 text-center text-3xl font-bold">Welcome Back</h1>
+    <div className="w-full">
+      <h1 className="mb-6 text-2xl font-semibold tracking-tight text-foreground">
+        {t("welcomeBack")}
+      </h1>
 
       <form
         onSubmit={(e) => {
@@ -78,7 +83,7 @@ export default function SignInForm() {
           <form.Field name="email">
             {(field) => (
               <div className="space-y-2">
-                <Label htmlFor={field.name}>Email</Label>
+                <Label htmlFor={field.name}>{tAuth("email")}</Label>
                 <Input
                   id={field.name}
                   name={field.name}
@@ -101,7 +106,7 @@ export default function SignInForm() {
           <form.Field name="password">
             {(field) => (
               <div className="space-y-2">
-                <Label htmlFor={field.name}>Password</Label>
+                <Label htmlFor={field.name}>{tAuth("password")}</Label>
                 <Input
                   id={field.name}
                   name={field.name}
@@ -127,7 +132,7 @@ export default function SignInForm() {
               className="w-full"
               disabled={!state.canSubmit || state.isSubmitting}
             >
-              {state.isSubmitting ? "Submitting..." : "Sign In"}
+              {state.isSubmitting ? t("submitting") : t("signIn")}
             </Button>
           )}
         </form.Subscribe>

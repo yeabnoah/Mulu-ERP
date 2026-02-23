@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import type { ColumnDef } from "@tanstack/react-table"
+import { useTranslations } from "next-intl"
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query"
 import { userService } from "@/services/user.service"
 import { roleService } from "@/services/role.service"
@@ -144,14 +145,16 @@ function UserActions({ user }: { user: User }) {
         queryFn: () => zoneService.getAll(),
     })
 
+    const t = useTranslations("users")
+    const tCommon = useTranslations("common")
     const deleteMutation = useMutation({
         mutationFn: () => userService.delete(user.id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["users"] })
-            toast.success("User removed successfully")
+            toast.success(t("userRemoved"))
         },
         onError: (error: any) => {
-            toast.error(error.response?.data?.error || "Failed to remove user")
+            toast.error(error.response?.data?.error || t("failedRemoveUser"))
         },
     })
 
@@ -164,13 +167,13 @@ function UserActions({ user }: { user: User }) {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["users"] })
-            toast.success("User promoted to pastor. They can log in at /pastor with their email and the password you set.")
+            toast.success(t("userPromoted"))
             setPromoteOpen(false)
             setSelectedZoneId("")
             setPastorPassword("")
         },
         onError: (error: any) => {
-            toast.error(error.response?.data?.error || "Failed to promote to pastor")
+            toast.error(error.response?.data?.error || t("failedPromote"))
         },
     })
 
@@ -183,16 +186,16 @@ function UserActions({ user }: { user: User }) {
         mutationFn: ({ id, roleIds }: { id: string; roleIds: string[] }) => userService.updateRoles(id, roleIds),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["users"] })
-            toast.success("Roles updated")
+            toast.success(t("rolesUpdated"))
         },
         onError: (error: any) => {
-            toast.error(error.response?.data?.error || "Failed to update roles")
+            toast.error(error.response?.data?.error || t("failedUpdateRoles"))
         },
     })
 
     const handleMakeAdmin = () => {
         if (!adminRole) {
-            toast.error("ADMIN role not found. Ensure it exists in Roles.")
+            toast.error(t("adminRoleNotFound"))
             return
         }
         const currentIds = user.roles?.map((ur) => ur.roleId) || []
@@ -250,7 +253,7 @@ function UserActions({ user }: { user: User }) {
                             className="flex size-8 cursor-pointer items-center justify-center rounded-md hover:bg-muted border-0 bg-transparent p-0"
                         >
                             <EllipsisVerticalIcon />
-                            <span className="sr-only">Open menu</span>
+                            <span className="sr-only">{tCommon("openMenu")}</span>
                         </button>
                     }
                 />
@@ -261,23 +264,23 @@ function UserActions({ user }: { user: User }) {
                             onClick={handleMakeAdmin}
                             disabled={!adminRole || updateRolesMutation.isPending}
                         >
-                            {updateRolesMutation.isPending ? "Updating..." : "Make admin"}
+                            {updateRolesMutation.isPending ? t("updating") : t("makeAdmin")}
                         </DropdownMenuItem>
                     ) : (
                         <DropdownMenuItem
                             onClick={handleRemoveAdmin}
                             disabled={updateRolesMutation.isPending}
                         >
-                            {updateRolesMutation.isPending ? "Updating..." : "Remove admin"}
+                            {updateRolesMutation.isPending ? t("updating") : t("removeAdmin")}
                         </DropdownMenuItem>
                     )}
                     {!isPastor && (
                         <DropdownMenuItem onClick={() => setPromoteOpen(true)}>
-                            Promote to Pastor
+                            {t("promoteToPastor")}
                         </DropdownMenuItem>
                     )}
                     {isPastor && (
-                        <DropdownMenuItem disabled>Already a Pastor</DropdownMenuItem>
+                        <DropdownMenuItem disabled>{t("alreadyPastor")}</DropdownMenuItem>
                     )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
@@ -285,7 +288,7 @@ function UserActions({ user }: { user: User }) {
                         onClick={() => deleteMutation.mutate()}
                         disabled={deleteMutation.isPending}
                     >
-                        {deleteMutation.isPending ? "Removing..." : "Remove"}
+                        {deleteMutation.isPending ? tCommon("removing") : tCommon("remove")}
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
@@ -301,11 +304,11 @@ function UserActions({ user }: { user: User }) {
                     <div className="grid gap-4 py-4">
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="zone" className="text-right">
-                                Zone
+                                {t("zone")}
                             </Label>
                             <Select value={selectedZoneId} onValueChange={(value) => setSelectedZoneId(value || "")}>
                                 <SelectTrigger className="col-span-3">
-                                    <SelectValue placeholder="Select a zone" />
+                                    <SelectValue placeholder={t("selectZone")} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {zones.map((zone: any) => (
@@ -323,7 +326,7 @@ function UserActions({ user }: { user: User }) {
                             <Input
                                 id="pastor-password"
                                 type="password"
-                                placeholder="Min. 8 characters (for /pastor login)"
+                                placeholder={t("pastorPasswordPlaceholder")}
                                 className="col-span-3"
                                 value={pastorPassword}
                                 onChange={(e) => setPastorPassword(e.target.value)}
@@ -345,7 +348,7 @@ function UserActions({ user }: { user: User }) {
                             onClick={() => promoteMutation.mutate()}
                             disabled={!selectedZoneId || !pastorPassword || pastorPassword.length < 8 || promoteMutation.isPending}
                         >
-                            {promoteMutation.isPending ? "Promoting..." : "Promote"}
+                            {promoteMutation.isPending ? t("promoting") : t("promote")}
                         </Button>
                     </SheetFooter>
                 </SheetContent>
@@ -354,158 +357,163 @@ function UserActions({ user }: { user: User }) {
     )
 }
 
-export const columns: ColumnDef<User>[] = [
-    {
-        id: "select",
-        header: ({ table }) => (
-            <div className="flex items-center justify-center">
-                <Checkbox
-                    key="header-checkbox"
-                    checked={table.getIsAllPageRowsSelected()}
-                    indeterminate={
-                        table.getIsSomePageRowsSelected() &&
-                        !table.getIsAllPageRowsSelected()
-                    }
-                    onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-                    aria-label="Select all"
-                />
-            </div>
-        ),
-        cell: ({ row }) => (
-            <div className="flex items-center justify-center">
-                <Checkbox
-                    checked={row.getIsSelected()}
-                    onCheckedChange={(value) => row.toggleSelected(!!value)}
-                    aria-label="Select row"
-                />
-            </div>
-        ),
-        enableSorting: false,
-        enableHiding: false,
-    },
-    {
-        accessorKey: "name",
-        header: "Name",
-        cell: ({ row }) => <TableCellViewer item={row.original} />,
-        enableHiding: false,
-    },
-    {
-        accessorKey: "email",
-        header: "Email",
-        cell: ({ row }) => (
-            <div className="text-muted-foreground">{row.original.email}</div>
-        ),
-    },
-    {
-        accessorKey: "roles",
-        header: "Roles",
-        cell: ({ row }) => (
-            <div className="flex flex-wrap gap-1">
-                {row.original.roles?.map((ur) => (
-                    <Badge key={ur.roleId} variant="outline" className="px-1.5 capitalize">
-                        {ur.role.name.toLowerCase()}
-                    </Badge>
-                ))}
-                {(!row.original.roles || row.original.roles.length === 0) && (
-                    <span className="text-muted-foreground text-xs italic">No roles</span>
-                )}
-            </div>
-        ),
-        filterFn: (row, id, value) => {
-            const roles = row.original.roles?.map((ur) => ur.role.name.toLowerCase()) || []
-            const filterValues = value.toLowerCase().split("|")
-            return roles.some((role) => filterValues.some((v: string) => role.includes(v)))
+export function useUserColumns(): ColumnDef<User>[] {
+    const t = useTranslations("users")
+    const tCommon = useTranslations("common")
+
+    return [
+        {
+            id: "select",
+            header: ({ table }) => (
+                <div className="flex items-center justify-center">
+                    <Checkbox
+                        key="header-checkbox"
+                        checked={table.getIsAllPageRowsSelected()}
+                        indeterminate={
+                            table.getIsSomePageRowsSelected() &&
+                            !table.getIsAllPageRowsSelected()
+                        }
+                        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+                        aria-label={tCommon("selectAll")}
+                    />
+                </div>
+            ),
+            cell: ({ row }) => (
+                <div className="flex items-center justify-center">
+                    <Checkbox
+                        checked={row.getIsSelected()}
+                        onCheckedChange={(value) => row.toggleSelected(!!value)}
+                        aria-label={tCommon("selectRow")}
+                    />
+                </div>
+            ),
+            enableSorting: false,
+            enableHiding: false,
         },
-    },
-    {
-        accessorKey: "family",
-        header: "Family",
-        cell: ({ row }) => (
-            <div className="text-muted-foreground">
-                {row.original.family?.name || "N/A"}
-            </div>
-        ),
-        filterFn: (row, id, value) => {
-            const familyName = row.original.family?.name?.toLowerCase() || ""
-            const filterValues = value.toLowerCase().split("|")
-            return filterValues.some((v: string) => familyName.includes(v))
+        {
+            accessorKey: "name",
+            header: t("name"),
+            cell: ({ row }) => <TableCellViewer item={row.original} />,
+            enableHiding: false,
         },
-    },
-    {
-        accessorKey: "zone",
-        header: "Zone",
-        cell: ({ row }) => (
-            <div className="text-muted-foreground">
-                {row.original.zone?.name || "N/A"}
-            </div>
-        ),
-        filterFn: (row, id, value) => {
-            const zoneName = row.original.zone?.name?.toLowerCase() || ""
-            const filterValues = value.toLowerCase().split("|")
-            return filterValues.some((v: string) => zoneName.includes(v))
+        {
+            accessorKey: "email",
+            header: t("email"),
+            cell: ({ row }) => (
+                <div className="text-muted-foreground">{row.original.email}</div>
+            ),
         },
-    },
-    {
-        accessorKey: "currentMinistry",
-        header: "Ministry",
-        cell: ({ row }) => (
-            <div className="text-muted-foreground">
-                {row.original.currentMinistry?.name || "N/A"}
-            </div>
-        ),
-        filterFn: (row, id, value) => {
-            const ministryName = row.original.currentMinistry?.name?.toLowerCase() || ""
-            return ministryName.includes(value.toLowerCase())
+        {
+            accessorKey: "roles",
+            header: t("roles"),
+            cell: ({ row }) => (
+                <div className="flex flex-wrap gap-1">
+                    {row.original.roles?.map((ur) => (
+                        <Badge key={ur.roleId} variant="outline" className="px-1.5 capitalize">
+                            {ur.role.name.toLowerCase()}
+                        </Badge>
+                    ))}
+                    {(!row.original.roles || row.original.roles.length === 0) && (
+                        <span className="text-muted-foreground text-xs italic">{t("noRoles")}</span>
+                    )}
+                </div>
+            ),
+            filterFn: (row, id, value) => {
+                const roles = row.original.roles?.map((ur) => ur.role.name.toLowerCase()) || []
+                const filterValues = value.toLowerCase().split("|")
+                return roles.some((role) => filterValues.some((v: string) => role.includes(v)))
+            },
         },
-    },
-    {
-        accessorKey: "marriageStatus",
-        header: "Marriage Status",
-        cell: ({ row }) => (
-            <div className="text-muted-foreground capitalize">
-                {row.original.marriageStatus?.toLowerCase() || "N/A"}
-            </div>
-        ),
-    },
-    {
-        accessorKey: "educationStatus",
-        header: "Education",
-        cell: ({ row }) => (
-            <div className="text-muted-foreground">
-                {row.original.educationStatus || "N/A"}
-            </div>
-        ),
-    },
-    {
-        accessorKey: "baptizedYear",
-        header: "Baptized",
-        cell: ({ row }) => (
-            <div className="text-muted-foreground">
-                {row.original.baptizedYear ? `Yes (${row.original.baptizedYear})` : "No"}
-            </div>
-        ),
-        filterFn: (row, id, value) => {
-            if (value === "baptized") return row.original.baptizedYear != null
-            if (value === "not-baptized") return row.original.baptizedYear == null
-            return true
+        {
+            accessorKey: "family",
+            header: t("family"),
+            cell: ({ row }) => (
+                <div className="text-muted-foreground">
+                    {row.original.family?.name || tCommon("na")}
+                </div>
+            ),
+            filterFn: (row, id, value) => {
+                const familyName = row.original.family?.name?.toLowerCase() || ""
+                const filterValues = value.toLowerCase().split("|")
+                return filterValues.some((v: string) => familyName.includes(v))
+            },
         },
-    },
-    {
-        accessorKey: "fromOtherChurch",
-        header: "From Other Church",
-        cell: ({ row }) => (
-            <div className="text-muted-foreground">
-                {row.original.fromOtherChurch ? "Yes" : "No"}
-            </div>
-        ),
-        filterFn: (row, id, value) => {
-            if (value === "yes") return row.original.fromOtherChurch === true
-            if (value === "no") return row.original.fromOtherChurch === false
-            return true
+        {
+            accessorKey: "zone",
+            header: t("zone"),
+            cell: ({ row }) => (
+                <div className="text-muted-foreground">
+                    {row.original.zone?.name || tCommon("na")}
+                </div>
+            ),
+            filterFn: (row, id, value) => {
+                const zoneName = row.original.zone?.name?.toLowerCase() || ""
+                const filterValues = value.toLowerCase().split("|")
+                return filterValues.some((v: string) => zoneName.includes(v))
+            },
         },
-    },
-    {
-        id: "actions",
-        cell: ({ row }) => <UserActions user={row.original} />,
-    },
-]
+        {
+            accessorKey: "currentMinistry",
+            header: t("ministry"),
+            cell: ({ row }) => (
+                <div className="text-muted-foreground">
+                    {row.original.currentMinistry?.name || tCommon("na")}
+                </div>
+            ),
+            filterFn: (row, id, value) => {
+                const ministryName = row.original.currentMinistry?.name?.toLowerCase() || ""
+                return ministryName.includes(value.toLowerCase())
+            },
+        },
+        {
+            accessorKey: "marriageStatus",
+            header: t("marriageStatus"),
+            cell: ({ row }) => (
+                <div className="text-muted-foreground capitalize">
+                    {row.original.marriageStatus?.toLowerCase() || tCommon("na")}
+                </div>
+            ),
+        },
+        {
+            accessorKey: "educationStatus",
+            header: t("education"),
+            cell: ({ row }) => (
+                <div className="text-muted-foreground">
+                    {row.original.educationStatus || tCommon("na")}
+                </div>
+            ),
+        },
+        {
+            accessorKey: "baptizedYear",
+            header: t("baptized"),
+            cell: ({ row }) => (
+                <div className="text-muted-foreground">
+                    {row.original.baptizedYear ? `${tCommon("yes")} (${row.original.baptizedYear})` : tCommon("no")}
+                </div>
+            ),
+            filterFn: (row, id, value) => {
+                if (value === "baptized") return row.original.baptizedYear != null
+                if (value === "not-baptized") return row.original.baptizedYear == null
+                return true
+            },
+        },
+        {
+            accessorKey: "fromOtherChurch",
+            header: t("fromOtherChurch"),
+            cell: ({ row }) => (
+                <div className="text-muted-foreground">
+                    {row.original.fromOtherChurch ? tCommon("yes") : tCommon("no")}
+                </div>
+            ),
+            filterFn: (row, id, value) => {
+                if (value === "yes") return row.original.fromOtherChurch === true
+                if (value === "no") return row.original.fromOtherChurch === false
+                return true
+            },
+        },
+        {
+            id: "actions",
+            cell: ({ row }) => <UserActions user={row.original} />,
+        },
+    ]
+}

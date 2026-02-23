@@ -1,69 +1,77 @@
 "use client"
 
 import * as React from "react"
+import { useTranslations } from "next-intl"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { zoneService } from "@/services/zone.service"
+import { ministryService } from "@/services/ministry.service"
 import { AppSidebar } from "@/components/app-sidebar"
-import { DataTable, type DataTableFilterOption } from "@/components/data-table"
+import {
+  DataTable,
+  type DataTableFilterOption,
+} from "@/components/data-table"
 import { SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { Trash2Icon } from "lucide-react"
-import { columns, type Zone } from "./columns"
-import { ZoneForm } from "@/components/forms/zone-form"
+import { useMinistryColumns, type Ministry } from "./columns"
+import { MinistryForm } from "@/components/forms/ministry-form"
 import { toast } from "sonner"
 
-export default function ZonesPage() {
+export default function MinistriesPage() {
+  const t = useTranslations("ministries")
+  const tCommon = useTranslations("common")
+  const tTable = useTranslations("table")
+  const columns = useMinistryColumns()
   const queryClient = useQueryClient()
-  const [selectedZones, setSelectedZones] = React.useState<Zone[]>([])
+  const [selectedMinistries, setSelectedMinistries] = React.useState<Ministry[]>([])
 
-  const { data: zones, isLoading } = useQuery({
-    queryKey: ["zones"],
-    queryFn: () => zoneService.getAll(),
+  const { data: ministries, isLoading } = useQuery({
+    queryKey: ["ministries"],
+    queryFn: () => ministryService.getAll(),
   })
 
-  const filters: DataTableFilterOption<typeof zones>[] = React.useMemo(
+  const filters: DataTableFilterOption<typeof ministries>[] = React.useMemo(
     () => [
       {
         id: "status",
-        label: "Status",
+        label: tTable("status"),
         options: [
-          { label: "Active", value: "active" },
-          { label: "Inactive", value: "inactive" },
+          { label: tTable("active"), value: "active" },
+          { label: tTable("inactive"), value: "inactive" },
         ],
       },
     ],
-    []
+    [tTable]
   )
 
   const bulkDeleteMutation = useMutation({
     mutationFn: async (ids: string[]) => {
-      await Promise.all(ids.map((id) => zoneService.delete(id)))
+      await Promise.all(ids.map((id) => ministryService.delete(id)))
     },
     onSuccess: (_data, ids) => {
-      queryClient.invalidateQueries({ queryKey: ["zones"] })
-      toast.success(`${ids.length} zone(s) deleted successfully`)
-      setSelectedZones([])
+      queryClient.invalidateQueries({ queryKey: ["ministries"] })
+      toast.success(t("deletedSuccess", { count: ids.length }))
+      setSelectedMinistries([])
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || "Failed to delete zones")
+      toast.error(error.response?.data?.error || t("failedDelete"))
     },
   })
 
-  const handleSelectionChange = (rows: Zone[]) => {
-    setSelectedZones(rows)
+  const handleSelectionChange = (rows: Ministry[]) => {
+    setSelectedMinistries(rows)
   }
 
   const handleBulkDelete = () => {
-    if (selectedZones.length === 0) return
+    if (selectedMinistries.length === 0) return
     if (
       !confirm(
-        `Are you sure you want to delete ${selectedZones.length} zone(s)?`
+        t("confirmDelete", { count: selectedMinistries.length })
       )
     ) {
       return
     }
-    const ids = selectedZones.map((z) => z.id)
+    const ids = selectedMinistries.map((m) => m.id)
     bulkDeleteMutation.mutate(ids)
   }
 
@@ -83,10 +91,10 @@ export default function ZonesPage() {
           <div className="@container/main flex flex-1 flex-col gap-6 p-6 lg:gap-8 lg:p-8">
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
               <div className="px-4 lg:px-6">
-                {selectedZones.length > 0 && (
+                {selectedMinistries.length > 0 && (
                   <div className="mb-4 flex items-center gap-2 rounded-lg bg-muted p-2">
                     <span className="text-sm font-medium">
-                      {selectedZones.length} zone(s) selected
+                      {t("selectedCount", { count: selectedMinistries.length })}
                     </span>
                     <div className="ml-auto flex gap-2">
                       <Button
@@ -96,21 +104,21 @@ export default function ZonesPage() {
                         disabled={bulkDeleteMutation.isPending}
                       >
                         <Trash2Icon className="mr-2 h-4 w-4" />
-                        {bulkDeleteMutation.isPending ? "Deleting..." : "Delete"}
+                        {bulkDeleteMutation.isPending ? t("deleting") : tCommon("delete")}
                       </Button>
                     </div>
                   </div>
                 )}
 
                 <DataTable
-                  title="Zone Management"
+                  title={t("title")}
                   columns={columns}
-                  data={zones || []}
-                  headerActions={<ZoneForm />}
+                  data={ministries || []}
+                  headerActions={<MinistryForm />}
                   isLoading={isLoading}
                   filters={filters}
                   onSelectionChange={handleSelectionChange}
-                  searchPlaceholder="Search zones..."
+                  searchPlaceholder={t("searchPlaceholder")}
                 />
               </div>
             </div>

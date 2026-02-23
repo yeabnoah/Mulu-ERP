@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
+import { Link, useRouter } from "@/i18n/navigation"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { userService } from "@/services/user.service"
 import { zoneService } from "@/services/zone.service"
@@ -18,7 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { columns } from "../users/columns"
+import { useUserColumns } from "../users/columns"
 import { UserForm } from "@/components/forms/user-form"
 import {
     PieChart,
@@ -65,6 +66,8 @@ function LoadingSkeleton() {
 }
 
 function PastorPortalLoginForm() {
+    const t = useTranslations("pastor")
+    const tAuth = useTranslations("auth")
     const router = useRouter()
     const [email, setEmail] = React.useState("")
     const [password, setPassword] = React.useState("")
@@ -83,7 +86,7 @@ function PastorPortalLoginForm() {
                         router.refresh()
                     },
                     onError: (err) => {
-                        toast.error(err.error?.message ?? "Sign in failed")
+                        toast.error(err.error?.message ?? t("signInFailed"))
                         setSubmitting(false)
                     },
                 },
@@ -100,15 +103,15 @@ function PastorPortalLoginForm() {
                     <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-full bg-primary/10">
                         <MapPin className="size-6 text-primary" />
                     </div>
-                    <CardTitle className="text-xl">Pastor Dashboard</CardTitle>
+                    <CardTitle className="text-xl">{t("pastorDashboard")}</CardTitle>
                     <p className="text-sm text-muted-foreground">
-                        Sign in with the email and password set by your administrator.
+                        {t("signInHint")}
                     </p>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="pastor-email">Email</Label>
+                            <Label htmlFor="pastor-email">{tAuth("email")}</Label>
                             <Input
                                 id="pastor-email"
                                 type="email"
@@ -119,7 +122,7 @@ function PastorPortalLoginForm() {
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="pastor-password">Password</Label>
+                            <Label htmlFor="pastor-password">{tAuth("password")}</Label>
                             <Input
                                 id="pastor-password"
                                 type="password"
@@ -130,10 +133,10 @@ function PastorPortalLoginForm() {
                             />
                         </div>
                         <Button type="submit" className="w-full" disabled={submitting}>
-                            {submitting ? "Signing in..." : "Sign in"}
+                            {submitting ? t("signingIn") : tAuth("signIn")}
                         </Button>
                         <p className="text-center text-xs text-muted-foreground">
-                            <a href="/login" className="underline hover:text-foreground">Full admin? Sign in here</a>
+                            <Link href="/login" className="underline hover:text-foreground">{t("fullAdminSignIn")}</Link>
                         </p>
                     </form>
                 </CardContent>
@@ -143,8 +146,13 @@ function PastorPortalLoginForm() {
 }
 
 export default function PastorPortalPage() {
+    const t = useTranslations("pastor")
+    const tDashboard = useTranslations("dashboard")
+    const tUsers = useTranslations("users")
+    const tCommon = useTranslations("common")
     const router = useRouter()
     const queryClient = useQueryClient()
+    const columns = useUserColumns()
     const [addUserOpen, setAddUserOpen] = React.useState(false)
 
     const { data: session, isPending: sessionLoading } = authClient.useSession()
@@ -204,7 +212,7 @@ export default function PastorPortalPage() {
     const filters: DataTableFilterOption<typeof users>[] = React.useMemo(() => [
         {
             id: "family",
-            label: "Family",
+            label: tUsers("family"),
             multiSelect: true,
             options: (families || []).filter((f: any) => f.zoneId === pastorZone?.id).map((family: { name: string; id: string }) => ({
                 label: family.name,
@@ -213,7 +221,7 @@ export default function PastorPortalPage() {
         },
         {
             id: "currentMinistry",
-            label: "Ministry",
+            label: tUsers("ministry"),
             multiSelect: true,
             options: (ministries || []).map((ministry: { name: string }) => ({
                 label: ministry.name,
@@ -222,18 +230,18 @@ export default function PastorPortalPage() {
         },
         {
             id: "marriageStatus",
-            label: "Marriage Status",
+            label: tUsers("marriageStatus"),
             multiSelect: true,
             options: [
-                { label: "Single", value: "single" },
-                { label: "Married", value: "married" },
-                { label: "Widow", value: "widow" },
-                { label: "Divorced", value: "divorced" },
+                { label: tUsers("single"), value: "single" },
+                { label: tUsers("married"), value: "married" },
+                { label: tUsers("widow"), value: "widow" },
+                { label: tUsers("divorced"), value: "divorced" },
             ],
         },
         {
             id: "educationStatus",
-            label: "Education",
+            label: tUsers("education"),
             multiSelect: true,
             options: [
                 { label: "High School", value: "high school" },
@@ -244,30 +252,30 @@ export default function PastorPortalPage() {
         },
         {
             id: "baptized",
-            label: "Baptized",
+            label: tUsers("baptized"),
             type: "select",
             options: [
-                { label: "Baptized", value: "baptized" },
-                { label: "Not Baptized", value: "not-baptized" },
+                { label: tUsers("baptized"), value: "baptized" },
+                { label: tUsers("notBaptized"), value: "not-baptized" },
             ],
         },
         {
             id: "fromOtherChurch",
-            label: "From Other Church",
+            label: tUsers("fromOtherChurch"),
             type: "select",
             options: [
-                { label: "Yes", value: "yes" },
-                { label: "No", value: "no" },
+                { label: tUsers("yes"), value: "yes" },
+                { label: tUsers("no"), value: "no" },
             ],
         },
-    ], [families, ministries, pastorZone?.id])
+    ], [tUsers, families, ministries, pastorZone?.id])
 
     // Now handle loading and conditional states AFTER all hooks are called
     const isLoading = sessionLoading || zoneLoading || usersLoading
 
     if (sessionLoading) {
         return (
-            <PortalLayout title="Pastor Portal">
+            <PortalLayout title={t("pastorPortal")}>
                 <div className="flex flex-1 flex-col gap-4 p-4">
                     <LoadingSkeleton />
                 </div>
@@ -277,7 +285,7 @@ export default function PastorPortalPage() {
 
     if (!userId) {
         return (
-            <PortalLayout title="Pastor Dashboard">
+            <PortalLayout title={t("pastorDashboard")}>
                 <PastorPortalLoginForm />
             </PortalLayout>
         )
@@ -285,7 +293,7 @@ export default function PastorPortalPage() {
 
     if (isLoading) {
         return (
-            <PortalLayout title="Pastor Portal">
+            <PortalLayout title={t("pastorPortal")}>
                 <div className="flex flex-1 flex-col gap-4 p-4">
                     <LoadingSkeleton />
                 </div>
@@ -295,14 +303,14 @@ export default function PastorPortalPage() {
 
     if (!pastorZone) {
         return (
-            <PortalLayout title="Pastor Portal">
+            <PortalLayout title={t("pastorPortal")}>
                 <div className="flex flex-1 flex-col gap-4 p-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle>No Zone Assigned</CardTitle>
+                            <CardTitle>{t("noZoneAssigned")}</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p>You do not have a zone assigned. Please contact the administrator.</p>
+                            <p>{t("noZoneDescription")}</p>
                         </CardContent>
                     </Card>
                 </div>
@@ -311,45 +319,45 @@ export default function PastorPortalPage() {
     }
 
     return (
-        <PortalLayout title="Pastor Portal">
+        <PortalLayout title={t("pastorPortal")}>
                 <div className="flex flex-1 flex-col gap-4 p-4">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h1 className="text-2xl font-bold">Pastor Portal</h1>
-                            <p className="text-muted-foreground">Managing: {pastorZone.name}</p>
+                            <h1 className="text-2xl font-bold">{t("pastorPortal")}</h1>
+                            <p className="text-muted-foreground">{t("managing")}: {pastorZone.name}</p>
                         </div>
                     </div>
 
                     {/* Stats Overview */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <StatCard
-                            title="Total Members"
+                            title={tDashboard("totalMembers")}
                             value={stats?.basic?.totalMembers || 0}
-                            description="In your zone"
+                            description={t("inYourZone")}
                         />
                         <StatCard
-                            title="Families"
+                            title={tDashboard("families")}
                             value={stats?.basic?.totalFamilies || 0}
-                            description="In your zone"
+                            description={t("inYourZone")}
                         />
                         <StatCard
-                            title="Children"
+                            title={tDashboard("children")}
                             value={stats?.basic?.totalChildren || 0}
-                            description="In your zone"
+                            description={t("inYourZone")}
                         />
                         <StatCard
-                            title="Baptized"
+                            title={tDashboard("baptized")}
                             value={stats?.basic?.baptizedCount || 0}
-                            description={stats?.basic?.totalMembers ? `${Math.round(((stats.basic.baptizedCount ?? 0) / stats.basic.totalMembers) * 100)}% of zone` : "In your zone"}
+                            description={stats?.basic?.totalMembers ? `${Math.round(((stats.basic.baptizedCount ?? 0) / stats.basic.totalMembers) * 100)}% ${t("ofZone")}` : t("inYourZone")}
                         />
                         <StatCard
-                            title="From other church"
+                            title={t("fromOtherChurch")}
                             value={stats?.basic?.fromOtherChurch ?? 0}
                         />
                         <StatCard
-                            title="Employed"
+                            title={tDashboard("employed")}
                             value={stats?.basic?.employedCount ?? 0}
-                            description={stats?.basic?.totalMembers ? `${Math.round(((stats.basic.employedCount ?? 0) / stats.basic.totalMembers) * 100)}% of zone` : undefined}
+                            description={stats?.basic?.totalMembers ? `${Math.round(((stats.basic.employedCount ?? 0) / stats.basic.totalMembers) * 100)}% ${t("ofZone")}` : undefined}
                         />
                     </div>
 
@@ -359,18 +367,18 @@ export default function PastorPortalPage() {
                             <div className="grid gap-6 lg:grid-cols-2">
                                 <Card>
                                     <CardHeader>
-                                        <CardTitle>Marriage status</CardTitle>
-                                        <p className="text-sm text-muted-foreground">Distribution by marriage status in your zone</p>
+                                        <CardTitle>{t("marriageStatus")}</CardTitle>
+                                        <p className="text-sm text-muted-foreground">{t("marriageStatusDesc")}</p>
                                     </CardHeader>
                                     <CardContent className="h-[280px]">
                                         <ResponsiveContainer width="100%" height="100%">
                                             <PieChart>
                                                 <Pie
                                                     data={[
-                                                        { name: "Single", value: stats.marriageStatus?.single ?? 0 },
-                                                        { name: "Married", value: stats.marriageStatus?.married ?? 0 },
-                                                        { name: "Widow", value: stats.marriageStatus?.widow ?? 0 },
-                                                        { name: "Divorced", value: stats.marriageStatus?.divorced ?? 0 },
+                                                        { name: tDashboard("single"), value: stats.marriageStatus?.single ?? 0 },
+                                                        { name: tDashboard("married"), value: stats.marriageStatus?.married ?? 0 },
+                                                        { name: tDashboard("widow"), value: stats.marriageStatus?.widow ?? 0 },
+                                                        { name: tDashboard("divorced"), value: stats.marriageStatus?.divorced ?? 0 },
                                                     ].filter((d) => d.value > 0)}
                                                     cx="50%"
                                                     cy="50%"
@@ -390,16 +398,16 @@ export default function PastorPortalPage() {
                                 </Card>
                                 <Card>
                                     <CardHeader>
-                                        <CardTitle>Church status</CardTitle>
-                                        <p className="text-sm text-muted-foreground">Baptized vs not baptized</p>
+                                        <CardTitle>{t("churchStatus")}</CardTitle>
+                                        <p className="text-sm text-muted-foreground">{t("churchStatusDesc")}</p>
                                     </CardHeader>
                                     <CardContent className="h-[280px]">
                                         <ResponsiveContainer width="100%" height="100%">
                                             <PieChart>
                                                 <Pie
                                                     data={[
-                                                        { name: "Baptized", value: stats.basic?.baptizedCount ?? 0 },
-                                                        { name: "Not baptized", value: stats.basic?.notBaptizedCount ?? 0 },
+                                                        { name: tDashboard("baptized"), value: stats.basic?.baptizedCount ?? 0 },
+                                                        { name: tDashboard("notBaptized"), value: stats.basic?.notBaptizedCount ?? 0 },
                                                     ].filter((d) => d.value > 0)}
                                                     cx="50%"
                                                     cy="50%"
@@ -420,8 +428,8 @@ export default function PastorPortalPage() {
                             <div className="grid gap-6 lg:grid-cols-2">
                                 <Card>
                                     <CardHeader>
-                                        <CardTitle>Education</CardTitle>
-                                        <p className="text-sm text-muted-foreground">By education status in your zone</p>
+                                        <CardTitle>{t("education")}</CardTitle>
+                                        <p className="text-sm text-muted-foreground">{t("educationDesc")}</p>
                                     </CardHeader>
                                     <CardContent className="h-[280px]">
                                         <ResponsiveContainer width="100%" height="100%">
@@ -433,15 +441,15 @@ export default function PastorPortalPage() {
                                                 <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                                                 <YAxis />
                                                 <Tooltip />
-                                                <Bar dataKey="value" fill={CHART_COLORS[0]} name="Members" radius={[4, 4, 0, 0]} />
+                                                <Bar dataKey="value" fill={CHART_COLORS[0]} name={tDashboard("members")} radius={[4, 4, 0, 0]} />
                                             </BarChart>
                                         </ResponsiveContainer>
                                     </CardContent>
                                 </Card>
                                 <Card>
                                     <CardHeader>
-                                        <CardTitle>Age groups</CardTitle>
-                                        <p className="text-sm text-muted-foreground">Distribution by age in your zone</p>
+                                        <CardTitle>{t("ageGroups")}</CardTitle>
+                                        <p className="text-sm text-muted-foreground">{t("ageGroupsDesc")}</p>
                                     </CardHeader>
                                     <CardContent className="h-[280px]">
                                         <ResponsiveContainer width="100%" height="100%">
@@ -453,7 +461,7 @@ export default function PastorPortalPage() {
                                                 <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                                                 <YAxis />
                                                 <Tooltip />
-                                                <Bar dataKey="value" fill={CHART_COLORS[2]} name="Members" radius={[4, 4, 0, 0]} />
+                                                <Bar dataKey="value" fill={CHART_COLORS[2]} name={tDashboard("members")} radius={[4, 4, 0, 0]} />
                                             </BarChart>
                                         </ResponsiveContainer>
                                     </CardContent>
@@ -462,8 +470,8 @@ export default function PastorPortalPage() {
                             {stats.ministries && stats.ministries.length > 0 && (
                                 <Card>
                                     <CardHeader>
-                                        <CardTitle>Ministries in your zone</CardTitle>
-                                        <p className="text-sm text-muted-foreground">Members per ministry</p>
+                                        <CardTitle>{t("ministriesInZone")}</CardTitle>
+                                        <p className="text-sm text-muted-foreground">{t("membersPerMinistry")}</p>
                                     </CardHeader>
                                     <CardContent className="h-[280px]">
                                         <ResponsiveContainer width="100%" height="100%">
@@ -476,7 +484,7 @@ export default function PastorPortalPage() {
                                                 <XAxis type="number" />
                                                 <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 11 }} />
                                                 <Tooltip />
-                                                <Bar dataKey="members" fill={CHART_COLORS[4]} name="Members" radius={[0, 4, 4, 0]} />
+                                                <Bar dataKey="members" fill={CHART_COLORS[4]} name={tDashboard("members")} radius={[0, 4, 4, 0]} />
                                             </BarChart>
                                         </ResponsiveContainer>
                                     </CardContent>
@@ -493,7 +501,7 @@ export default function PastorPortalPage() {
                         headerActions={
                             <Button onClick={() => setAddUserOpen(true)}>
                                 <PlusIcon className="mr-2 h-4 w-4" />
-                                Add Member
+                                {t("addMember")}
                             </Button>
                         }
                     />
