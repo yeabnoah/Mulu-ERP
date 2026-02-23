@@ -25,10 +25,12 @@ export type Family = {
 
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { familyService } from "@/services/family.service"
+import { FamilyForm } from "@/components/forms/family-form"
 import { toast } from "sonner"
 
 function FamilyActions({ family }: { family: Family }) {
     const queryClient = useQueryClient()
+    const [editOpen, setEditOpen] = React.useState(false)
     const deleteMutation = useMutation({
         mutationFn: () => familyService.delete(family.id),
         onSuccess: () => {
@@ -41,31 +43,41 @@ function FamilyActions({ family }: { family: Family }) {
     })
 
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger
-                render={
-                    <Button
-                        variant="ghost"
-                        className="data-open:bg-muted text-muted-foreground flex size-8"
-                        size="icon"
+        <>
+            <DropdownMenu>
+                <DropdownMenuTrigger
+                    render={
+                        <Button
+                            variant="ghost"
+                            className="data-open:bg-muted text-muted-foreground flex size-8"
+                            size="icon"
+                            onPointerDown={(e) => e.stopPropagation()}
+                        >
+                            <EllipsisVerticalIcon />
+                            <span className="sr-only">Open menu</span>
+                        </Button>
+                    }
+                />
+                <DropdownMenuContent align="end" className="w-32">
+                    <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                        Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                        variant="destructive"
+                        onClick={() => deleteMutation.mutate()}
+                        disabled={deleteMutation.isPending}
                     >
-                        <EllipsisVerticalIcon />
-                        <span className="sr-only">Open menu</span>
-                    </Button>
-                }
+                        {deleteMutation.isPending ? "Removing..." : "Remove"}
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+            <FamilyForm
+                family={{ id: family.id, name: family.name, description: family.description ?? undefined, zoneId: family.zoneId }}
+                open={editOpen}
+                onOpenChange={setEditOpen}
             />
-            <DropdownMenuContent align="end" className="w-32">
-                <DropdownMenuItem>Edit</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                    variant="destructive"
-                    onSelect={() => deleteMutation.mutate()}
-                    disabled={deleteMutation.isPending}
-                >
-                    {deleteMutation.isPending ? "Removing..." : "Remove"}
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
+        </>
     )
 }
 

@@ -34,4 +34,21 @@ export const userService = {
         const { data } = await api.delete(`/users/${id}`);
         return data;
     },
+    setPassword: async (userId: string, newPassword: string) => {
+        const { data } = await api.post("/users/set-password", { userId, newPassword });
+        return data;
+    },
+    // Bulk operations
+    bulkDelete: async (ids: string[]) => {
+        const { data } = await api.post("/users/bulk-delete", { ids });
+        return data;
+    },
+    bulkPromoteToPastor: async (ids: string[], zoneId: string) => {
+        const { data } = await api.post("/users/bulk-promote-to-pastor", { ids, zoneId });
+        return data;
+    },
+    bulkUpdateRoles: async (ids: string[], roleIds: string[]) => {
+        const { data } = await api.post("/users/bulk-update-roles", { ids, roleIds });
+        return data;
+    },
 };

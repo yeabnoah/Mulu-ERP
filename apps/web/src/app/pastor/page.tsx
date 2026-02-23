@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useRouter } from "next/navigation"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { userService } from "@/services/user.service"
 import { zoneService } from "@/services/zone.service"
@@ -9,17 +10,32 @@ import { familyService } from "@/services/family.service"
 import { ministryService } from "@/services/ministry.service"
 import { roleService } from "@/services/role.service"
 import { authClient } from "@/lib/auth-client"
-import { AppSidebar } from "@/components/app-sidebar"
+import { portalService } from "@/services/portal.service"
+import { PortalLayout } from "@/components/portal-layout"
 import { DataTable, type DataTableFilterOption } from "@/components/data-table"
-import { SiteHeader } from "@/components/site-header"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { columns } from "../users/columns"
 import { UserForm } from "@/components/forms/user-form"
-import { Button } from "@/components/ui/button"
-import { PlusIcon } from "lucide-react"
+import {
+    PieChart,
+    Pie,
+    Cell,
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+} from "recharts"
+import { PlusIcon, MapPin } from "lucide-react"
 import { toast } from "sonner"
+
+const CHART_COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d"]
 
 function StatCard({ title, value, description }: { title: string; value: number; description?: string }) {
     return (
@@ -48,44 +64,116 @@ function LoadingSkeleton() {
     )
 }
 
+function PastorPortalLoginForm() {
+    const router = useRouter()
+    const [email, setEmail] = React.useState("")
+    const [password, setPassword] = React.useState("")
+    const [submitting, setSubmitting] = React.useState(false)
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!email || !password) return
+        setSubmitting(true)
+        try {
+            await authClient.signIn.email(
+                { email, password },
+                {
+                    onSuccess: () => {
+                        router.push("/pastor")
+                        router.refresh()
+                    },
+                    onError: (err) => {
+                        toast.error(err.error?.message ?? "Sign in failed")
+                        setSubmitting(false)
+                    },
+                },
+            )
+        } catch {
+            setSubmitting(false)
+        }
+    }
+
+    return (
+        <div className="mx-auto flex min-h-[60vh] w-full max-w-sm flex-col justify-center px-4">
+            <Card>
+                <CardHeader className="text-center">
+                    <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-full bg-primary/10">
+                        <MapPin className="size-6 text-primary" />
+                    </div>
+                    <CardTitle className="text-xl">Pastor Dashboard</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                        Sign in with the email and password set by your administrator.
+                    </p>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="pastor-email">Email</Label>
+                            <Input
+                                id="pastor-email"
+                                type="email"
+                                placeholder="you@example.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="pastor-password">Password</Label>
+                            <Input
+                                id="pastor-password"
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                                minLength={8}
+                            />
+                        </div>
+                        <Button type="submit" className="w-full" disabled={submitting}>
+                            {submitting ? "Signing in..." : "Sign in"}
+                        </Button>
+                        <p className="text-center text-xs text-muted-foreground">
+                            <a href="/login" className="underline hover:text-foreground">Full admin? Sign in here</a>
+                        </p>
+                    </form>
+                </CardContent>
+            </Card>
+        </div>
+    )
+}
+
 export default function PastorPortalPage() {
+    const router = useRouter()
     const queryClient = useQueryClient()
     const [addUserOpen, setAddUserOpen] = React.useState(false)
 
-    // Get current user to find their zone
     const { data: session, isPending: sessionLoading } = authClient.useSession()
     const userId = session?.user?.id
 
-    // Show loading state while session is being determined
-    if (sessionLoading) {
-        return (
-            <SidebarProvider>
-                <AppSidebar />
-                <SidebarInset>
-                    <SiteHeader />
-                    <div className="flex flex-1 flex-col gap-4 p-4">
-                        <LoadingSkeleton />
-                    </div>
-                </SidebarInset>
-            </SidebarProvider>
-        )
-    }
+    const { data: me } = useQuery({
+        queryKey: ["portal", "me"],
+        queryFn: () => portalService.getMe(),
+        enabled: !!userId,
+    })
+    React.useEffect(() => {
+        if (me && userId && !me.isPastor) {
+            router.replace("/my-ministry")
+        }
+    }, [me, userId, router])
 
-    // Get pastor's zone
+    // Call ALL hooks unconditionally - Rules of Hooks require this
     const { data: pastorZone, isLoading: zoneLoading } = useQuery({
         queryKey: ["pastor-zone", userId],
         queryFn: () => zoneService.getByPastorId(userId!),
         enabled: !!userId,
     })
 
-    // Get users in pastor's zone
     const { data: users, isLoading: usersLoading } = useQuery({
         queryKey: ["users", pastorZone?.id],
         queryFn: () => userService.getAll(pastorZone?.id),
         enabled: !!pastorZone?.id,
     })
 
-    // Get pastor stats
     const { data: stats } = useQuery({
         queryKey: ["pastor-stats", pastorZone?.id],
         queryFn: () => statsService.getPastorStats(pastorZone!.id),
@@ -112,8 +200,7 @@ export default function PastorPortalPage() {
         queryFn: () => roleService.getAll(),
     })
 
-    const isLoading = zoneLoading || usersLoading
-
+    // useMemo must run unconditionally (Rules of Hooks)
     const filters: DataTableFilterOption<typeof users>[] = React.useMemo(() => [
         {
             id: "family",
@@ -175,46 +262,56 @@ export default function PastorPortalPage() {
         },
     ], [families, ministries, pastorZone?.id])
 
+    // Now handle loading and conditional states AFTER all hooks are called
+    const isLoading = sessionLoading || zoneLoading || usersLoading
+
+    if (sessionLoading) {
+        return (
+            <PortalLayout title="Pastor Portal">
+                <div className="flex flex-1 flex-col gap-4 p-4">
+                    <LoadingSkeleton />
+                </div>
+            </PortalLayout>
+        )
+    }
+
+    if (!userId) {
+        return (
+            <PortalLayout title="Pastor Dashboard">
+                <PastorPortalLoginForm />
+            </PortalLayout>
+        )
+    }
+
     if (isLoading) {
         return (
-            <SidebarProvider>
-                <AppSidebar />
-                <SidebarInset>
-                    <SiteHeader />
-                    <div className="flex flex-1 flex-col gap-4 p-4">
-                        <LoadingSkeleton />
-                    </div>
-                </SidebarInset>
-            </SidebarProvider>
+            <PortalLayout title="Pastor Portal">
+                <div className="flex flex-1 flex-col gap-4 p-4">
+                    <LoadingSkeleton />
+                </div>
+            </PortalLayout>
         )
     }
 
     if (!pastorZone) {
         return (
-            <SidebarProvider>
-                <AppSidebar />
-                <SidebarInset>
-                    <SiteHeader />
-                    <div className="flex flex-1 flex-col gap-4 p-4">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>No Zone Assigned</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p>You do not have a zone assigned. Please contact the administrator.</p>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </SidebarInset>
-            </SidebarProvider>
+            <PortalLayout title="Pastor Portal">
+                <div className="flex flex-1 flex-col gap-4 p-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>No Zone Assigned</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p>You do not have a zone assigned. Please contact the administrator.</p>
+                        </CardContent>
+                    </Card>
+                </div>
+            </PortalLayout>
         )
     }
 
     return (
-        <SidebarProvider>
-            <AppSidebar />
-            <SidebarInset>
-                <SiteHeader />
+        <PortalLayout title="Pastor Portal">
                 <div className="flex flex-1 flex-col gap-4 p-4">
                     <div className="flex items-center justify-between">
                         <div>
@@ -243,9 +340,150 @@ export default function PastorPortalPage() {
                         <StatCard
                             title="Baptized"
                             value={stats?.basic?.baptizedCount || 0}
-                            description="In your zone"
+                            description={stats?.basic?.totalMembers ? `${Math.round(((stats.basic.baptizedCount ?? 0) / stats.basic.totalMembers) * 100)}% of zone` : "In your zone"}
+                        />
+                        <StatCard
+                            title="From other church"
+                            value={stats?.basic?.fromOtherChurch ?? 0}
+                        />
+                        <StatCard
+                            title="Employed"
+                            value={stats?.basic?.employedCount ?? 0}
+                            description={stats?.basic?.totalMembers ? `${Math.round(((stats.basic.employedCount ?? 0) / stats.basic.totalMembers) * 100)}% of zone` : undefined}
                         />
                     </div>
+
+                    {/* Data visualisation */}
+                    {stats && (
+                        <>
+                            <div className="grid gap-6 lg:grid-cols-2">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Marriage status</CardTitle>
+                                        <p className="text-sm text-muted-foreground">Distribution by marriage status in your zone</p>
+                                    </CardHeader>
+                                    <CardContent className="h-[280px]">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <PieChart>
+                                                <Pie
+                                                    data={[
+                                                        { name: "Single", value: stats.marriageStatus?.single ?? 0 },
+                                                        { name: "Married", value: stats.marriageStatus?.married ?? 0 },
+                                                        { name: "Widow", value: stats.marriageStatus?.widow ?? 0 },
+                                                        { name: "Divorced", value: stats.marriageStatus?.divorced ?? 0 },
+                                                    ].filter((d) => d.value > 0)}
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    labelLine={false}
+                                                    label={({ name, percent }) => (percent > 0 ? `${name} ${(percent * 100).toFixed(0)}%` : "")}
+                                                    outerRadius={80}
+                                                    dataKey="value"
+                                                >
+                                                    {[0, 1, 2, 3].map((i) => (
+                                                        <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                                                    ))}
+                                                </Pie>
+                                                <Tooltip />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    </CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Church status</CardTitle>
+                                        <p className="text-sm text-muted-foreground">Baptized vs not baptized</p>
+                                    </CardHeader>
+                                    <CardContent className="h-[280px]">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <PieChart>
+                                                <Pie
+                                                    data={[
+                                                        { name: "Baptized", value: stats.basic?.baptizedCount ?? 0 },
+                                                        { name: "Not baptized", value: stats.basic?.notBaptizedCount ?? 0 },
+                                                    ].filter((d) => d.value > 0)}
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    labelLine={false}
+                                                    label={({ name, percent }) => (percent > 0 ? `${name} ${(percent * 100).toFixed(0)}%` : "")}
+                                                    outerRadius={80}
+                                                    dataKey="value"
+                                                >
+                                                    <Cell fill={CHART_COLORS[0]} />
+                                                    <Cell fill={CHART_COLORS[1]} />
+                                                </Pie>
+                                                <Tooltip />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                            <div className="grid gap-6 lg:grid-cols-2">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Education</CardTitle>
+                                        <p className="text-sm text-muted-foreground">By education status in your zone</p>
+                                    </CardHeader>
+                                    <CardContent className="h-[280px]">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart
+                                                data={Object.entries(stats.educationStatus ?? {}).map(([name, value]) => ({ name, value }))}
+                                                margin={{ top: 8, right: 8, left: 8, bottom: 8 }}
+                                            >
+                                                <CartesianGrid strokeDasharray="3 3" />
+                                                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                                                <YAxis />
+                                                <Tooltip />
+                                                <Bar dataKey="value" fill={CHART_COLORS[0]} name="Members" radius={[4, 4, 0, 0]} />
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Age groups</CardTitle>
+                                        <p className="text-sm text-muted-foreground">Distribution by age in your zone</p>
+                                    </CardHeader>
+                                    <CardContent className="h-[280px]">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart
+                                                data={Object.entries(stats.ageGroups ?? {}).map(([name, value]) => ({ name, value }))}
+                                                margin={{ top: 8, right: 8, left: 8, bottom: 8 }}
+                                            >
+                                                <CartesianGrid strokeDasharray="3 3" />
+                                                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                                                <YAxis />
+                                                <Tooltip />
+                                                <Bar dataKey="value" fill={CHART_COLORS[2]} name="Members" radius={[4, 4, 0, 0]} />
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                            {stats.ministries && stats.ministries.length > 0 && (
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Ministries in your zone</CardTitle>
+                                        <p className="text-sm text-muted-foreground">Members per ministry</p>
+                                    </CardHeader>
+                                    <CardContent className="h-[280px]">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart
+                                                data={stats.ministries.map((m: { name: string; memberCount: number }) => ({ name: m.name, members: m.memberCount }))}
+                                                layout="vertical"
+                                                margin={{ top: 8, right: 8, left: 8, bottom: 8 }}
+                                            >
+                                                <CartesianGrid strokeDasharray="3 3" />
+                                                <XAxis type="number" />
+                                                <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 11 }} />
+                                                <Tooltip />
+                                                <Bar dataKey="members" fill={CHART_COLORS[4]} name="Members" radius={[0, 4, 4, 0]} />
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </>
+                    )}
 
                     {/* Users Table */}
                     <DataTable
@@ -268,7 +506,6 @@ export default function PastorPortalPage() {
                         }}
                     />
                 </div>
-            </SidebarInset>
-        </SidebarProvider>
+        </PortalLayout>
     )
 }

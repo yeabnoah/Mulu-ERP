@@ -15,7 +15,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { LayoutDashboardIcon, ListIcon, ChartBarIcon, FolderIcon, UsersIcon, CameraIcon, FileTextIcon, Settings2Icon, CircleHelpIcon, SearchIcon, DatabaseIcon, FileChartColumnIcon, FileIcon, CommandIcon, CrossIcon } from "lucide-react"
+import { LayoutDashboardIcon, ListIcon, FolderIcon, UsersIcon, Settings2Icon, CircleHelpIcon, DatabaseIcon, FileChartColumnIcon, CommandIcon, ShieldIcon } from "lucide-react"
 
 const data = {
   navMain: [
@@ -35,6 +35,11 @@ const data = {
       icon: <ListIcon />,
     },
     {
+      title: "Ministry Admin",
+      url: "/ministries-admin",
+      icon: <ShieldIcon />,
+    },
+    {
       title: "Zones",
       url: "/zones",
       icon: <DatabaseIcon />,
@@ -44,35 +49,18 @@ const data = {
       url: "/families",
       icon: <FolderIcon />,
     },
-    {
-      title: "Roles",
-      url: "/roles",
-      icon: <Settings2Icon />,
-    },
-    {
-      title: "Pastor Portal",
-      url: "/pastor",
-      icon: <CrossIcon />,
-    },
   ],
   navSecondary: [
-    {
-      title: "Settings",
-      url: "/settings",
-      icon: <Settings2Icon />,
-    },
-    {
-      title: "Get Help",
-      url: "/help",
-      icon: <CircleHelpIcon />,
-    },
-  ],
-  documents: [
-    {
-      name: "Reports",
-      url: "/reports",
-      icon: <FileChartColumnIcon />,
-    },
+    // {
+    //   title: "Settings",
+    //   url: "/settings",
+    //   icon: <Settings2Icon />,
+    // },
+    // {
+    //   title: "Get Help",
+    //   url: "/help",
+    //   icon: <CircleHelpIcon />,
+    // },
   ],
 }
 import Link from "next/link"
@@ -95,7 +83,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavDocuments items={data.documents} />
+        {/* <NavDocuments items={data.documents} /> */}
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

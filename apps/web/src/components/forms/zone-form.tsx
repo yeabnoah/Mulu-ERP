@@ -27,19 +27,41 @@ import {
 import { PlusIcon } from "lucide-react"
 import { toast } from "sonner"
 
-export function ZoneForm() {
+type ZoneForForm = { id: string; name: string; description?: string | null; pastorId: string }
+
+export function ZoneForm({
+    zone,
+    open: controlledOpen,
+    onOpenChange: controlledOnOpenChange,
+}: {
+    zone?: ZoneForForm | null
+    open?: boolean
+    onOpenChange?: (open: boolean) => void
+} = {}) {
     const queryClient = useQueryClient()
-    const [open, setOpen] = React.useState(false)
+    const [internalOpen, setInternalOpen] = React.useState(false)
     const [name, setName] = React.useState("")
     const [description, setDescription] = React.useState("")
     const [pastorId, setPastorId] = React.useState("")
+
+    const isEdit = !!zone
+    const open = isEdit ? (controlledOpen ?? false) : internalOpen
+    const setOpen = isEdit ? (controlledOnOpenChange ?? (() => {})) : setInternalOpen
+
+    React.useEffect(() => {
+        if (zone) {
+            setName(zone.name)
+            setDescription(zone.description ?? "")
+            setPastorId(zone.pastorId)
+        }
+    }, [zone])
 
     const { data: users } = useQuery({
         queryKey: ["users"],
         queryFn: () => userService.getAll(),
     })
 
-    const mutation = useMutation({
+    const createMutation = useMutation({
         mutationFn: (payload: any) => zoneService.create(payload),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["zones"] })
@@ -49,6 +71,19 @@ export function ZoneForm() {
         },
         onError: (error: any) => {
             toast.error(error.response?.data?.error || "Failed to create zone")
+        },
+    })
+
+    const updateMutation = useMutation({
+        mutationFn: ({ id, payload }: { id: string; payload: any }) => zoneService.update(id, payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["zones"] })
+            toast.success("Zone updated successfully")
+            setOpen(false)
+            resetForm()
+        },
+        onError: (error: any) => {
+            toast.error(error.response?.data?.error || "Failed to update zone")
         },
     })
 
@@ -64,24 +99,29 @@ export function ZoneForm() {
             toast.error("Please select a pastor")
             return
         }
-        mutation.mutate({
-            name,
-            description,
-            pastorId,
-        })
+        const payload = { name, description, pastorId }
+        if (isEdit) {
+            updateMutation.mutate({ id: zone.id, payload })
+        } else {
+            createMutation.mutate(payload)
+        }
     }
+
+    const pending = createMutation.isPending || updateMutation.isPending
 
     return (
         <Sheet open={open} onOpenChange={setOpen}>
-            <SheetTrigger render={<Button variant="outline" size="sm" />}>
-                <PlusIcon />
-                <span className="hidden lg:inline">Add Zone</span>
-            </SheetTrigger>
-            <SheetContent side="right">
+            {!isEdit && (
+                <SheetTrigger render={<Button variant="outline" size="sm" />}>
+                    <PlusIcon />
+                    <span className="hidden lg:inline">Add Zone</span>
+                </SheetTrigger>
+            )}
+            <SheetContent side="center" className="w-[450px] max-w-full overflow-y-auto">
                 <SheetHeader>
-                    <SheetTitle>Add New Zone</SheetTitle>
+                    <SheetTitle>{isEdit ? "Edit Zone" : "Add New Zone"}</SheetTitle>
                     <SheetDescription>
-                        Create a new zone and assign a pastor.
+                        {isEdit ? "Update zone and pastor assignment." : "Create a new zone and assign a pastor."}
                     </SheetDescription>
                 </SheetHeader>
                 <form onSubmit={handleSubmit} className="flex flex-col gap-6 py-4 px-4 text-sm">
@@ -120,8 +160,8 @@ export function ZoneForm() {
                         </Select>
                     </div>
                     <SheetFooter className="px-0 pt-4">
-                        <Button type="submit" className="w-full" disabled={mutation.isPending}>
-                            {mutation.isPending ? "Creating..." : "Create Zone"}
+                        <Button type="submit" className="w-full" disabled={pending}>
+                            {pending ? (isEdit ? "Updating..." : "Creating...") : isEdit ? "Update Zone" : "Create Zone"}
                         </Button>
                         <SheetClose render={<Button variant="outline" className="w-full" type="button" />}>
                             Cancel

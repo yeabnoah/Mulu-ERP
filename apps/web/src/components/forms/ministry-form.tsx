@@ -19,13 +19,34 @@ import {
 import { PlusIcon } from "lucide-react"
 import { toast } from "sonner"
 
-export function MinistryForm() {
+type MinistryForForm = { id: string; name: string; description?: string | null }
+
+export function MinistryForm({
+    ministry,
+    open: controlledOpen,
+    onOpenChange: controlledOnOpenChange,
+}: {
+    ministry?: MinistryForForm | null
+    open?: boolean
+    onOpenChange?: (open: boolean) => void
+} = {}) {
     const queryClient = useQueryClient()
-    const [open, setOpen] = React.useState(false)
+    const [internalOpen, setInternalOpen] = React.useState(false)
     const [name, setName] = React.useState("")
     const [description, setDescription] = React.useState("")
 
-    const mutation = useMutation({
+    const isEdit = !!ministry
+    const open = isEdit ? (controlledOpen ?? false) : internalOpen
+    const setOpen = isEdit ? (controlledOnOpenChange ?? (() => {})) : setInternalOpen
+
+    React.useEffect(() => {
+        if (ministry) {
+            setName(ministry.name)
+            setDescription(ministry.description ?? "")
+        }
+    }, [ministry])
+
+    const createMutation = useMutation({
         mutationFn: (payload: any) => ministryService.create(payload),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["ministries"] })
@@ -38,6 +59,19 @@ export function MinistryForm() {
         },
     })
 
+    const updateMutation = useMutation({
+        mutationFn: ({ id, payload }: { id: string; payload: any }) => ministryService.update(id, payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["ministries"] })
+            toast.success("Ministry updated successfully")
+            setOpen(false)
+            resetForm()
+        },
+        onError: (error: any) => {
+            toast.error(error.response?.data?.error || "Failed to update ministry")
+        },
+    })
+
     const resetForm = () => {
         setName("")
         setDescription("")
@@ -45,23 +79,29 @@ export function MinistryForm() {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
-        mutation.mutate({
-            name,
-            description,
-        })
+        const payload = { name, description }
+        if (isEdit) {
+            updateMutation.mutate({ id: ministry.id, payload })
+        } else {
+            createMutation.mutate(payload)
+        }
     }
+
+    const pending = createMutation.isPending || updateMutation.isPending
 
     return (
         <Sheet open={open} onOpenChange={setOpen}>
-            <SheetTrigger render={<Button variant="outline" size="sm" />}>
-                <PlusIcon />
-                <span className="hidden lg:inline">Add Ministry</span>
-            </SheetTrigger>
-            <SheetContent side="right">
+            {!isEdit && (
+                <SheetTrigger render={<Button variant="outline" size="sm" />}>
+                    <PlusIcon />
+                    <span className="hidden lg:inline">Add Ministry</span>
+                </SheetTrigger>
+            )}
+            <SheetContent side="center" className="w-[450px] max-w-full overflow-y-auto">
                 <SheetHeader>
-                    <SheetTitle>Add New Ministry</SheetTitle>
+                    <SheetTitle>{isEdit ? "Edit Ministry" : "Add New Ministry"}</SheetTitle>
                     <SheetDescription>
-                        Define a new ministry and its purpose.
+                        {isEdit ? "Update ministry details." : "Define a new ministry and its purpose."}
                     </SheetDescription>
                 </SheetHeader>
                 <form onSubmit={handleSubmit} className="flex flex-col gap-6 py-4 px-4 text-sm">
@@ -85,8 +125,8 @@ export function MinistryForm() {
                         />
                     </div>
                     <SheetFooter className="px-0 pt-4">
-                        <Button type="submit" className="w-full" disabled={mutation.isPending}>
-                            {mutation.isPending ? "Creating..." : "Create Ministry"}
+                        <Button type="submit" className="w-full" disabled={pending}>
+                            {pending ? (isEdit ? "Updating..." : "Creating...") : isEdit ? "Update Ministry" : "Create Ministry"}
                         </Button>
                         <SheetClose render={<Button variant="outline" className="w-full" type="button" />}>
                             Cancel

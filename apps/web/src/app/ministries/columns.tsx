@@ -23,10 +23,12 @@ export type Ministry = {
 
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { ministryService } from "@/services/ministry.service"
+import { MinistryForm } from "@/components/forms/ministry-form"
 import { toast } from "sonner"
 
 function MinistryActions({ ministry }: { ministry: Ministry }) {
     const queryClient = useQueryClient()
+    const [editOpen, setEditOpen] = React.useState(false)
     const deleteMutation = useMutation({
         mutationFn: () => ministryService.delete(ministry.id),
         onSuccess: () => {
@@ -39,31 +41,41 @@ function MinistryActions({ ministry }: { ministry: Ministry }) {
     })
 
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger
-                render={
-                    <Button
-                        variant="ghost"
-                        className="data-open:bg-muted text-muted-foreground flex size-8"
-                        size="icon"
+        <>
+            <DropdownMenu>
+                <DropdownMenuTrigger
+                    render={
+                        <Button
+                            variant="ghost"
+                            className="data-open:bg-muted text-muted-foreground flex size-8"
+                            size="icon"
+                            onPointerDown={(e) => e.stopPropagation()}
+                        >
+                            <EllipsisVerticalIcon />
+                            <span className="sr-only">Open menu</span>
+                        </Button>
+                    }
+                />
+                <DropdownMenuContent align="end" className="w-32">
+                    <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                        Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                        variant="destructive"
+                        onClick={() => deleteMutation.mutate()}
+                        disabled={deleteMutation.isPending}
                     >
-                        <EllipsisVerticalIcon />
-                        <span className="sr-only">Open menu</span>
-                    </Button>
-                }
+                        {deleteMutation.isPending ? "Removing..." : "Remove"}
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+            <MinistryForm
+                ministry={{ id: ministry.id, name: ministry.name, description: ministry.description ?? undefined }}
+                open={editOpen}
+                onOpenChange={setEditOpen}
             />
-            <DropdownMenuContent align="end" className="w-32">
-                <DropdownMenuItem>Edit</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                    variant="destructive"
-                    onSelect={() => deleteMutation.mutate()}
-                    disabled={deleteMutation.isPending}
-                >
-                    {deleteMutation.isPending ? "Removing..." : "Remove"}
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
+        </>
     )
 }
 

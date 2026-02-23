@@ -25,10 +25,12 @@ export type Zone = {
 
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { zoneService } from "@/services/zone.service"
+import { ZoneForm } from "@/components/forms/zone-form"
 import { toast } from "sonner"
 
 function ZoneActions({ zone }: { zone: Zone }) {
     const queryClient = useQueryClient()
+    const [editOpen, setEditOpen] = React.useState(false)
     const deleteMutation = useMutation({
         mutationFn: () => zoneService.delete(zone.id),
         onSuccess: () => {
@@ -41,31 +43,41 @@ function ZoneActions({ zone }: { zone: Zone }) {
     })
 
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger
-                render={
-                    <Button
-                        variant="ghost"
-                        className="data-open:bg-muted text-muted-foreground flex size-8"
-                        size="icon"
+        <>
+            <DropdownMenu>
+                <DropdownMenuTrigger
+                    render={
+                        <Button
+                            variant="ghost"
+                            className="data-open:bg-muted text-muted-foreground flex size-8"
+                            size="icon"
+                            onPointerDown={(e) => e.stopPropagation()}
+                        >
+                            <EllipsisVerticalIcon />
+                            <span className="sr-only">Open menu</span>
+                        </Button>
+                    }
+                />
+                <DropdownMenuContent align="end" className="w-32">
+                    <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                        Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                        variant="destructive"
+                        onClick={() => deleteMutation.mutate()}
+                        disabled={deleteMutation.isPending}
                     >
-                        <EllipsisVerticalIcon />
-                        <span className="sr-only">Open menu</span>
-                    </Button>
-                }
+                        {deleteMutation.isPending ? "Removing..." : "Remove"}
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+            <ZoneForm
+                zone={{ id: zone.id, name: zone.name, description: zone.description ?? undefined, pastorId: zone.pastorId }}
+                open={editOpen}
+                onOpenChange={setEditOpen}
             />
-            <DropdownMenuContent align="end" className="w-32">
-                <DropdownMenuItem>Edit</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                    variant="destructive"
-                    onSelect={() => deleteMutation.mutate()}
-                    disabled={deleteMutation.isPending}
-                >
-                    {deleteMutation.isPending ? "Removing..." : "Remove"}
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
+        </>
     )
 }
 

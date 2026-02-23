@@ -1,7 +1,10 @@
 "use client"
 
 import * as React from "react"
+import { useRouter } from "next/navigation"
 import { useQuery } from "@tanstack/react-query"
+import { authClient } from "@/lib/auth-client"
+import { portalService } from "@/services/portal.service"
 import { statsService } from "@/services/stats.service"
 import { zoneService } from "@/services/zone.service"
 import { AppSidebar } from "@/components/app-sidebar"
@@ -36,12 +39,12 @@ function StatCard({ title, value, icon: Icon, description }: { title: string; va
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
+        <CardTitle className="text-base font-medium">{title}</CardTitle>
+        <Icon className="h-5 w-5 text-muted-foreground" />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value?.toLocaleString() || 0}</div>
-        {description && <p className="text-xs text-muted-foreground">{description}</p>}
+        <div className="text-3xl font-bold">{value?.toLocaleString() || 0}</div>
+        {description && <p className="text-sm text-muted-foreground">{description}</p>}
       </CardContent>
     </Card>
   )
@@ -321,7 +324,7 @@ function PastorDashboard({ stats, selectedZone }: { stats: any; selectedZone: st
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Zone: {stats?.zoneName}</h2>
+        <h2 className="text-3xl font-bold">Zone: {stats?.zoneName}</h2>
       </div>
 
       {/* Basic Stats */}
@@ -402,12 +405,31 @@ function PastorDashboard({ stats, selectedZone }: { stats: any; selectedZone: st
 }
 
 export default function Page() {
+  const router = useRouter()
   const [view, setView] = React.useState<"admin" | "pastor">("admin")
   const [selectedZone, setSelectedZone] = React.useState<string>("")
+
+  const { data: session } = authClient.useSession()
+  const { data: me } = useQuery({
+    queryKey: ["portal", "me"],
+    queryFn: () => portalService.getMe(),
+    enabled: !!session?.user?.id,
+  })
+  React.useEffect(() => {
+    if (!me) return
+    if (!me.isAppAdmin) {
+      router.replace("/my-ministry")
+      return
+    }
+    if (me.isPastor && !me.isAdmin) {
+      router.replace("/pastor")
+    }
+  }, [me, router])
 
   const { data: stats, isLoading: loadingAdmin } = useQuery({
     queryKey: ["stats-detailed"],
     queryFn: () => statsService.getDetailed(),
+    enabled: !!me?.isAdmin,
   })
 
   const { data: zones } = useQuery({
@@ -420,6 +442,10 @@ export default function Page() {
     queryFn: () => statsService.getPastorStats(selectedZone),
     enabled: !!selectedZone,
   })
+
+  if (session && me && (!me.isAppAdmin || (me.isPastor && !me.isAdmin))) {
+    return null
+  }
 
   return (
     <SidebarProvider
@@ -434,7 +460,7 @@ export default function Page() {
       <SidebarInset>
         <SiteHeader title="Analytics" />
         <div className="flex flex-1 flex-col">
-          <div className="@container/main flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+          <div className="@container/main flex flex-1 flex-col gap-6 p-6 lg:gap-8 lg:p-8">
             {/* View Toggle */}
             <div className="flex items-center gap-4">
               <Tabs value={view} onValueChange={(v) => setView(v as any)}>

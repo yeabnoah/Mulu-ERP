@@ -63,7 +63,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ChevronDownIcon, ChevronsLeftIcon, ChevronLeftIcon, ChevronRightIcon, ChevronsRightIcon, Columns3Icon, FilterIcon, GripVerticalIcon, XIcon } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { ChevronDownIcon, ChevronsLeftIcon, ChevronLeftIcon, ChevronRightIcon, ChevronsRightIcon, Columns3Icon, FilterIcon, GripVerticalIcon, SearchIcon, XIcon, PrinterIcon } from "lucide-react"
 
 export type DataTableFilterOption<TData> = {
   id: string
@@ -81,6 +82,89 @@ interface DataTableProps<TData, TValue> {
   getRowId?: (row: TData) => string
   isLoading?: boolean
   filters?: DataTableFilterOption<TData>[]
+  onSelectionChange?: (selectedRows: TData[]) => void
+  searchable?: boolean
+  searchPlaceholder?: string
+  onPrint?: (data: TData[]) => void
+}
+
+function handlePrint(data: any[], columns: any[], title?: string) {
+  // Get visible columns
+  const visibleColumns = columns.filter((col: any) => col.accessorKey || col.accessorFn)
+
+  // Helper to get column header
+  const getColumnHeader = (col: any) => {
+    if (typeof col.header === "function") {
+      // Try to get header from accessorKey or id
+      return col.accessorKey || col.id
+    }
+    return col.header || col.accessorKey || col.id
+  }
+
+  // Helper to get cell value
+  const getCellValue = (row: any, col: any) => {
+    if (col.accessorFn) {
+      return col.accessorFn(row)
+    }
+    const value = row[col.accessorKey]
+    // Handle nested objects (like roles, family, zone, ministry)
+    if (value && typeof value === "object") {
+      if (Array.isArray(value)) {
+        // Handle arrays like roles
+        return value.map((item: any) => item.role?.name || item.name || "").filter(Boolean).join(", ")
+      }
+      // Handle single objects
+      return value.name || value.title || JSON.stringify(value)
+    }
+    return value ?? ""
+  }
+
+  // Create print content
+  const printWindow = window.open("", "_blank")
+  if (!printWindow) return
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>${title || "Report"}</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h1 { margin-bottom: 5px; }
+        .date { color: #666; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
+        th { background-color: #f5f5f5; font-weight: bold; }
+        tr:nth-child(even) { background-color: #fafafa; }
+        @media print {
+          body { -webkit-print-color-adjust: exact; }
+        }
+      </style>
+    </head>
+    <body>
+      <h1>${title || "Report"}</h1>
+      <p class="date">Generated: ${new Date().toLocaleString()}</p>
+      <table>
+        <thead>
+          <tr>
+            ${visibleColumns.map((col: any) => `<th>${getColumnHeader(col)}</th>`).join("")}
+          </tr>
+        </thead>
+        <tbody>
+          ${data.map((row: any) => `
+            <tr>
+              ${visibleColumns.map((col: any) => `<td>${getCellValue(row, col)}</td>`).join("")}
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </body>
+    </html>
+  `
+
+  printWindow.document.write(html)
+  printWindow.document.close()
+  printWindow.print()
 }
 
 function DragHandle({ id }: { id: string }) {
@@ -105,9 +189,11 @@ function DraggableRow<TData>({ row }: { row: Row<TData> }) {
   const { transform, transition, setNodeRef, isDragging } = useSortable({
     id: (row.original as any).id,
   })
+  const isSelected = row.getIsSelected()
   return (
     <TableRow
-      data-state={row.getIsSelected() && "selected"}
+      key={row.id + (isSelected ? "-selected" : "")}
+      data-state={isSelected && "selected"}
       data-dragging={isDragging}
       ref={setNodeRef}
       className="relative z-0 data-[dragging=true]:z-10 data-[dragging=true]:opacity-80"
@@ -133,6 +219,9 @@ export function DataTable<TData, TValue>({
   getRowId = (row: any) => row.id.toString(),
   isLoading,
   filters,
+  onSelectionChange,
+  searchable = true,
+  searchPlaceholder = "Search...",
 }: DataTableProps<TData, TValue>) {
   const [data, setData] = React.useState(() => initialData)
   const [rowSelection, setRowSelection] = React.useState({})
@@ -143,6 +232,7 @@ export function DataTable<TData, TValue>({
   )
   const [activeFilters, setActiveFilters] = React.useState<Record<string, string[]>>({})
   const [sorting, setSorting] = React.useState<SortingState>([])
+  const [globalFilter, setGlobalFilter] = React.useState("")
   const [pagination, setPagination] = React.useState({
     pageIndex: 0,
     pageSize: 10,
@@ -215,6 +305,7 @@ export function DataTable<TData, TValue>({
       rowSelection,
       columnFilters,
       pagination,
+      globalFilter,
     },
     getRowId,
     enableRowSelection: true,
@@ -223,6 +314,7 @@ export function DataTable<TData, TValue>({
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
     onPaginationChange: setPagination,
+    onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -230,6 +322,14 @@ export function DataTable<TData, TValue>({
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
   })
+
+  // Notify parent of selection changes
+  React.useEffect(() => {
+    if (onSelectionChange) {
+      const selectedRows = table.getSelectedRowModel().rows.map((row) => row.original)
+      onSelectionChange(selectedRows as TData[])
+    }
+  }, [rowSelection, table, onSelectionChange])
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
@@ -244,11 +344,30 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="w-full flex flex-col gap-6">
-      <div className="flex items-center justify-between px-4 lg:px-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+      <div className="flex items-center justify-between px-6 lg:px-8">
+        <h2 className="text-base font-semibold uppercase tracking-wider text-muted-foreground">
           {title}
         </h2>
         <div className="flex items-center gap-2">
+          {searchable && (
+            <div className="relative">
+              <SearchIcon className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={searchPlaceholder}
+                value={globalFilter ?? ""}
+                onChange={(event) => setGlobalFilter(event.target.value)}
+                className="pl-8 w-64"
+              />
+            </div>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePrint(table.getFilteredRowModel().rows.map(r => r.original), columns, title)}
+          >
+            <PrinterIcon className="mr-2 h-4 w-4" />
+            Print
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
@@ -287,7 +406,7 @@ export function DataTable<TData, TValue>({
         </div>
       </div>
       {filters && filters.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 px-4 lg:px-6">
+        <div className="flex flex-wrap items-center gap-2 px-6 lg:px-8">
           {Object.keys(activeFilters).length > 0 && (
             <Button
               variant="ghost"
@@ -348,8 +467,8 @@ export function DataTable<TData, TValue>({
           })}
         </div>
       )}
-      <div className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
-        <div className="overflow-hidden rounded-lg border">
+      <div className="relative flex flex-col gap-4 overflow-auto px-6 lg:px-8">
+        <div className="overflow-hidden rounded-xl border">
           <DndContext
             collisionDetection={closestCenter}
             modifiers={[restrictToVerticalAxis]}
@@ -410,7 +529,7 @@ export function DataTable<TData, TValue>({
             </Table>
           </DndContext>
         </div>
-        <div className="flex items-center justify-between px-4 pb-4">
+        <div className="flex items-center justify-between px-6 pb-6">
           <div className="text-muted-foreground hidden flex-1 text-sm lg:flex">
             {table.getFilteredSelectedRowModel().rows.length} of{" "}
             {table.getFilteredRowModel().rows.length} row(s) selected.

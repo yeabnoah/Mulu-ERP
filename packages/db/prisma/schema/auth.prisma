@@ -59,6 +59,10 @@ model User {
   familyRole    FamilyMemberType?
   children      Child[]
 
+  // Ministry relations
+  ministryAdmin   MinistryAdmin[]
+  ministryRequests MinistryRequest[]
+
   @@unique([email])
   @@map("user")
 }

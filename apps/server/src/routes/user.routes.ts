@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { hashPassword } from "better-auth/crypto";
 import prisma from "@muluerp/db";
 
 const userRoutes = new Hono();
@@ -46,11 +47,51 @@ userRoutes.get("/:id", async (c) => {
     return c.json(user);
 });
 
+// Set password for a user (admin only – used when assigning ministry admin so they can log in)
+userRoutes.post("/set-password", async (c) => {
+    const body = await c.req.json<{ userId: string; newPassword: string }>();
+    const { userId, newPassword } = body;
+    if (!userId || !newPassword || typeof newPassword !== "string") {
+        return c.json({ error: "userId and newPassword are required" }, 400);
+    }
+    if (newPassword.length < 8) {
+        return c.json({ error: "Password must be at least 8 characters" }, 400);
+    }
+
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+    });
+    if (!user) return c.json({ error: "User not found" }, 404);
+
+    const hashed = await hashPassword(newPassword);
+    const existing = await prisma.account.findFirst({
+        where: { userId, providerId: "email" },
+    });
+    if (existing) {
+        await prisma.account.update({
+            where: { id: existing.id },
+            data: { password: hashed, updatedAt: new Date() },
+        });
+    } else {
+        await prisma.account.create({
+            data: {
+                id: `credential-${userId}`,
+                userId,
+                accountId: user.email,
+                providerId: "email",
+                password: hashed,
+            },
+        });
+    }
+    return c.json({ message: "Password set successfully" });
+});
+
 // Create user
 userRoutes.post("/", async (c) => {
     const data = await c.req.json<{
         name: string
         email?: string
+        image?: string
         birthPlace?: string
         birthDate?: string
         livingAddress?: string
@@ -91,6 +132,7 @@ userRoutes.post("/", async (c) => {
             id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             name: data.name,
             email: data.email || `${data.name.toLowerCase().replace(/\s/g, '.')}@church.local`,
+            image: data.image,
             birthPlace: data.birthPlace,
             birthDate: data.birthDate ? new Date(data.birthDate) : null,
             livingAddress: data.livingAddress,
@@ -134,6 +176,7 @@ userRoutes.patch("/:id", async (c) => {
     const data = await c.req.json<{
         name?: string
         email?: string
+        image?: string | null
         birthPlace?: string
         birthDate?: string
         livingAddress?: string
@@ -175,6 +218,7 @@ userRoutes.patch("/:id", async (c) => {
         data: {
             name: data.name,
             email: data.email,
+            image: data.image,
             birthPlace: data.birthPlace,
             birthDate: data.birthDate ? new Date(data.birthDate) : null,
             livingAddress: data.livingAddress,
@@ -335,6 +379,85 @@ userRoutes.delete("/:id", async (c) => {
         where: { id },
     });
     return c.json({ message: "User deleted" });
+});
+
+// Bulk delete users
+userRoutes.post("/bulk-delete", async (c) => {
+    const { ids } = await c.req.json<{ ids: string[] }>();
+
+    await prisma.user.deleteMany({
+        where: { id: { in: ids } },
+    });
+
+    return c.json({ message: `${ids.length} users deleted` });
+});
+
+// Bulk promote to pastor
+userRoutes.post("/bulk-promote-to-pastor", async (c) => {
+    const { ids, zoneId } = await c.req.json<{ ids: string[]; zoneId: string }>();
+
+    // Get the PASTOR role
+    const pastorRole = await prisma.role.findFirst({
+        where: { name: "PASTOR" },
+    });
+
+    if (!pastorRole) {
+        return c.json({ error: "PASTOR role not found" }, 404);
+    }
+
+    // Update all users
+    for (const userId of ids) {
+        // Delete existing roles
+        await prisma.userRole.deleteMany({
+            where: { userId },
+        });
+
+        // Add PASTOR role
+        await prisma.userRole.create({
+            data: {
+                userId,
+                roleId: pastorRole.id,
+            },
+        });
+
+        // Update user's zone
+        await prisma.user.update({
+            where: { id: userId },
+            data: { zoneId },
+        });
+    }
+
+    // Update zone to assign the first user as pastor
+    await prisma.zone.update({
+        where: { id: zoneId },
+        data: { pastorId: ids[0] },
+    });
+
+    return c.json({ message: `${ids.length} users promoted to pastor` });
+});
+
+// Bulk update roles
+userRoutes.post("/bulk-update-roles", async (c) => {
+    const { ids, roleIds } = await c.req.json<{ ids: string[]; roleIds: string[] }>();
+
+    for (const userId of ids) {
+        // Delete existing roles
+        await prisma.userRole.deleteMany({
+            where: { userId },
+        });
+
+        // Add new roles
+        if (roleIds.length > 0) {
+            await prisma.userRole.createMany({
+                data: roleIds.map((roleId) => ({
+                    userId,
+                    roleId,
+                })),
+            });
+        }
+    }
+
+    return c.json({ message: `Roles updated for ${ids.length} users` });
 });
 
 export default userRoutes;

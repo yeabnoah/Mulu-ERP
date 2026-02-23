@@ -22,16 +22,60 @@ model Ministry {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  members          MinistryMember[]
-  currentMembers   User[]            @relation("UserCurrentMinistry")
+  // Ministry Admins (leaders who can manage the ministry)
+  admins     MinistryAdmin[]
+  members    MinistryMember[]
+  requests   MinistryRequest[]
+  currentMembers User[] @relation("UserCurrentMinistry")
+}
+
+model MinistryAdmin {
+  id         String   @id @default(cuid())
+  userId     String
+  ministryId String
+  role       String   @default("LEADER") // LEADER, ADMIN
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ministry Ministry @relation(fields: [ministryId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, ministryId])
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model MinistryRequest {
+  id          String       @id @default(cuid())
+  userId      String
+  ministryId  String
+  status     RequestStatus @default(PENDING)
+  requestedBy String       // User who requested
+  reviewedBy  String?      // Admin who reviewed
+  reviewedAt DateTime?
+  notes       String?
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ministry Ministry @relation(fields: [ministryId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, ministryId])
 }
 
 model MinistryMember {
   userId     String
   ministryId String
+  role       String   @default("MEMBER") // MEMBER, LEADER
 
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   ministry Ministry @relation(fields: [ministryId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
 
   @@id([userId, ministryId])
 }

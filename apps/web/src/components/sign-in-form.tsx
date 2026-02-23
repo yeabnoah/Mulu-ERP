@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import z from "zod";
 
 import { authClient } from "@/lib/auth-client";
+import { portalService } from "@/services/portal.service";
 
 import Loader from "./loader";
 import { Button } from "./ui/button";
@@ -28,8 +29,19 @@ export default function SignInForm() {
           password: value.password,
         },
         {
-          onSuccess: () => {
-            router.push("/dashboard");
+          onSuccess: async () => {
+            try {
+              const me = await portalService.getMe();
+              if (me.isAdmin) {
+                router.push("/dashboard");
+              } else if (me.isPastor) {
+                router.push("/pastor");
+              } else {
+                router.push("/my-ministry");
+              }
+            } catch {
+              router.push("/dashboard");
+            }
             toast.success("Sign in successful");
           },
           onError: (error) => {

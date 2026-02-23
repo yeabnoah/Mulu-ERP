@@ -10,8 +10,11 @@ import { logger } from "hono/logger";
 import userRoutes from "./routes/user.routes";
 import roleRoutes from "./routes/role.routes";
 import ministryRoutes from "./routes/ministry.routes";
+import ministryAdminRoutes from "./routes/ministry-admin.routes";
+import portalRoutes from "./routes/portal.routes";
 import zoneRoutes from "./routes/zone.routes";
 import familyRoutes from "./routes/family.routes";
+import uploadRoutes from "./routes/upload.routes";
 
 const app = new Hono();
 
@@ -21,7 +24,7 @@ app.use(
   cors({
     origin: env.CORS_ORIGIN,
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization"],
+    allowHeaders: ["Content-Type", "Authorization", "Cookie"],
     credentials: true,
   }),
 );
@@ -33,10 +36,9 @@ app.get("/", (c) => {
   return c.text("ERP Server OK");
 });
 
-// RBAC Middleware
+// Auth + RBAC Middleware
 app.use("/api/*", async (c, next) => {
-  // Skip auth for auth routes themselves
-  if (c.req.path.startsWith("/api/auth")) {
+  if (c.req.path.startsWith("/api/auth") || c.req.path.startsWith("/api/upload")) {
     return next();
   }
 
@@ -45,31 +47,26 @@ app.use("/api/*", async (c, next) => {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
-  // Check for ADMIN or PASTOR role
+  c.set("userId", session.user.id);
+
+  // Portal: any authenticated user can access (data scoped to their assignments in route handlers)
+  if (c.req.path.startsWith("/api/portal")) {
+    return next();
+  }
+
   const userWithRoles = await prisma.user.findUnique({
     where: { id: session.user.id },
     include: {
-      roles: {
-        include: {
-          role: true,
-        },
-      },
+      roles: { include: { role: true } },
       zone: true,
     },
   });
 
   const roles = userWithRoles?.roles.map((r) => r.role.name) || [];
-  const isAdmin = roles.includes("ADMIN");
-  const isPastor = roles.includes("PASTOR");
-
-  // Store user info in context for later use
   c.set("userRoles", roles);
-  c.set("userZoneId", userWithRoles?.zoneId);
+  c.set("userZoneId", userWithRoles?.zoneId ?? null);
 
-  if (!isAdmin && !isPastor) {
-    // We allow users to see their own info/profile?
-    // The user said: "don't allow any access of information if the user's role is not admin"
-    // So we strictly enforce ADMIN/PASTOR for all /api/* routes except auth.
+  if (!roles.includes("ADMIN") && !roles.includes("PASTOR")) {
     return c.json({ error: "Forbidden: Admin or Pastor access required" }, 403);
   }
 
@@ -80,8 +77,11 @@ app.use("/api/*", async (c, next) => {
 app.route("/api/users", userRoutes);
 app.route("/api/roles", roleRoutes);
 app.route("/api/ministries", ministryRoutes);
+app.route("/api/ministries-admin", ministryAdminRoutes);
+app.route("/api/portal", portalRoutes);
 app.route("/api/zones", zoneRoutes);
 app.route("/api/families", familyRoutes);
+app.route("/api/upload", uploadRoutes);
 
 // Dashboard stats endpoint - single optimized query
 app.get("/api/stats", async (c) => {
@@ -243,8 +243,12 @@ app.get("/api/stats/pastor/:zoneId", async (c) => {
       },
       members: {
         include: {
-          currentMinistry: true,
-          children: true,
+          user: {
+            include: {
+              currentMinistry: true,
+              children: true,
+            },
+          },
         },
       },
     },
@@ -254,41 +258,57 @@ app.get("/api/stats/pastor/:zoneId", async (c) => {
     return c.json({ error: "Zone not found" }, 404);
   }
 
-  const members = zone.members;
+  const zoneMembers = zone.members;
+  const users = zoneMembers.map((zm) => zm.user);
   const families = zone.families;
 
-  // Basic counts
-  const totalMembers = members.length;
+  const totalMembers = users.length;
   const totalFamilies = families.length;
-  const totalChildren = families.reduce((acc, f) => acc + f.members.filter(m => m.familyRole === "SON" || m.familyRole === "DAUGHTER").length, 0);
+  const totalChildren = families.reduce((acc, f) => acc + f.members.filter((m) => m.familyRole === "SON" || m.familyRole === "DAUGHTER").length, 0);
 
-  // Marriage status
   const marriageStats = {
-    single: members.filter(u => u.marriageStatus === "SINGLE").length,
-    married: members.filter(u => u.marriageStatus === "MARRIED").length,
-    widow: members.filter(u => u.marriageStatus === "WIDOW").length,
-    divorced: members.filter(u => u.marriageStatus === "DIVORCED").length,
+    single: users.filter((u) => u.marriageStatus === "SINGLE").length,
+    married: users.filter((u) => u.marriageStatus === "MARRIED").length,
+    widow: users.filter((u) => u.marriageStatus === "WIDOW").length,
+    divorced: users.filter((u) => u.marriageStatus === "DIVORCED").length,
   };
 
-  // Education
   const educationStats: Record<string, number> = {};
-  members.forEach(u => {
-    const status = u.educationStatus || "UNKNOWN";
+  users.forEach((u) => {
+    const status = u.educationStatus || "Unknown";
     educationStats[status] = (educationStats[status] || 0) + 1;
   });
 
-  // Baptized
-  const baptizedCount = members.filter(u => u.baptizedYear !== null).length;
+  const baptizedCount = users.filter((u) => u.baptizedYear != null).length;
+  const fromOtherChurch = users.filter((u) => u.fromOtherChurch).length;
+  const employedCount = users.filter((u) => u.work != null && u.work !== "").length;
 
-  // Ministries in this zone
-  const ministryIds = [...new Set(members.map(m => m.currentMinistryId).filter(Boolean))];
+  const now = new Date();
+  const ageGroups: Record<string, number> = {
+    "0-18": 0,
+    "19-25": 0,
+    "26-35": 0,
+    "36-45": 0,
+    "46-55": 0,
+    "55+": 0,
+    Unknown: 0,
+  };
+  users.forEach((u) => {
+    if (u.birthDate) {
+      const age = now.getFullYear() - u.birthDate.getFullYear();
+      if (age < 19) ageGroups["0-18"]++;
+      else if (age < 26) ageGroups["19-25"]++;
+      else if (age < 36) ageGroups["26-35"]++;
+      else if (age < 46) ageGroups["36-45"]++;
+      else if (age < 56) ageGroups["46-55"]++;
+      else ageGroups["55+"]++;
+    } else ageGroups["Unknown"]++;
+  });
+
+  const ministryIds = [...new Set(users.map((u) => u.currentMinistryId).filter(Boolean))];
   const ministries = await prisma.ministry.findMany({
     where: { id: { in: ministryIds as string[] } },
-    include: {
-      _count: {
-        select: { members: true },
-      },
-    },
+    include: { _count: { select: { members: true } } },
   });
 
   return c.json({
@@ -298,10 +318,15 @@ app.get("/api/stats/pastor/:zoneId", async (c) => {
       totalFamilies,
       totalChildren,
       baptizedCount,
+      notBaptizedCount: totalMembers - baptizedCount,
+      fromOtherChurch,
+      employedCount,
+      unemployedCount: totalMembers - employedCount,
     },
     marriageStatus: marriageStats,
     educationStatus: educationStats,
-    ministries: ministries.map(m => ({
+    ageGroups,
+    ministries: ministries.map((m) => ({
       id: m.id,
       name: m.name,
       memberCount: m._count.members,

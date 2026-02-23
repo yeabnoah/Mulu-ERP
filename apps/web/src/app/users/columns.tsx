@@ -10,6 +10,7 @@ import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -25,6 +26,7 @@ import {
     SheetHeader,
     SheetTitle,
 } from "@/components/ui/sheet"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { EllipsisVerticalIcon } from "lucide-react"
@@ -77,6 +79,7 @@ function TableCellViewer({ item }: { item: User }) {
     const userData = {
         id: item.id,
         name: item.name || "",
+        image: item.image || "",
         birthPlace: item.birthPlace || "",
         birthDate: item.birthDate || "",
         livingAddress: item.livingAddress || "",
@@ -86,8 +89,8 @@ function TableCellViewer({ item }: { item: User }) {
         skill: item.skill || "",
         work: item.work || "",
         companyName: item.companyName || "",
-        zoneId: item.zoneId || "",
-        currentMinistryId: item.currentMinistryId || "",
+        zoneId: item.zone?.id || "",
+        currentMinistryId: item.currentMinistry?.id || "",
         marriageStatus: item.marriageStatus || "",
         spouseName: item.spouseName || "",
         spouseBelief: item.spouseBelief || "",
@@ -97,19 +100,27 @@ function TableCellViewer({ item }: { item: User }) {
         formerChurchName: item.formerChurchName || "",
         leaveMessage: item.leaveMessage || "",
         leaveMessageType: item.leaveMessageType || "",
-        familyId: item.familyId || "",
+        familyId: item.family?.id || "",
         familyRole: item.familyRole || "",
         roleIds: roleIds,
     }
 
     return (
         <>
-            <span
-                className="text-foreground w-fit px-0 text-left cursor-pointer hover:underline"
-                onClick={() => setEditOpen(true)}
-            >
-                {item.name}
-            </span>
+            <div className="flex items-center gap-3">
+                <Avatar className="h-8 w-8">
+                    <AvatarImage src={item.image || undefined} alt={item.name} />
+                    <AvatarFallback className="text-xs">
+                        {item.name?.[0]?.toUpperCase() || "?"}
+                    </AvatarFallback>
+                </Avatar>
+                <span
+                    className="text-foreground cursor-pointer hover:underline"
+                    onClick={() => setEditOpen(true)}
+                >
+                    {item.name}
+                </span>
+            </div>
             <UserForm user={userData} open={editOpen} onOpenChange={setEditOpen} />
         </>
     )
@@ -120,6 +131,7 @@ function UserActions({ user }: { user: User }) {
     const [editOpen, setEditOpen] = React.useState(false)
     const [promoteOpen, setPromoteOpen] = React.useState(false)
     const [selectedZoneId, setSelectedZoneId] = React.useState("")
+    const [pastorPassword, setPastorPassword] = React.useState("")
 
     // Fetch roles and zones for the promote dialog
     const { data: roles = [] } = useQuery({
@@ -144,26 +156,65 @@ function UserActions({ user }: { user: User }) {
     })
 
     const promoteMutation = useMutation({
-        mutationFn: () => userService.promoteToPastor(user.id, selectedZoneId, []),
+        mutationFn: async () => {
+            await userService.promoteToPastor(user.id, selectedZoneId, [])
+            if (pastorPassword.trim().length >= 8) {
+                await userService.setPassword(user.id, pastorPassword)
+            }
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["users"] })
-            toast.success("User promoted to pastor successfully")
+            toast.success("User promoted to pastor. They can log in at /pastor with their email and the password you set.")
             setPromoteOpen(false)
             setSelectedZoneId("")
+            setPastorPassword("")
         },
         onError: (error: any) => {
             toast.error(error.response?.data?.error || "Failed to promote to pastor")
         },
     })
 
-    // Check if user is already a pastor
+    // Check if user is already a pastor or admin
     const isPastor = user.roles?.some((ur) => ur.role.name === "PASTOR")
+    const isAdmin = user.roles?.some((ur) => ur.role.name === "ADMIN")
+    const adminRole = roles.find((r: { name: string }) => r.name === "ADMIN")
+
+    const updateRolesMutation = useMutation({
+        mutationFn: ({ id, roleIds }: { id: string; roleIds: string[] }) => userService.updateRoles(id, roleIds),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["users"] })
+            toast.success("Roles updated")
+        },
+        onError: (error: any) => {
+            toast.error(error.response?.data?.error || "Failed to update roles")
+        },
+    })
+
+    const handleMakeAdmin = () => {
+        if (!adminRole) {
+            toast.error("ADMIN role not found. Ensure it exists in Roles.")
+            return
+        }
+        const currentIds = user.roles?.map((ur) => ur.roleId) || []
+        const newIds = currentIds.includes(adminRole.id) ? currentIds : [...currentIds, adminRole.id]
+        updateRolesMutation.mutate({ id: user.id, roleIds: newIds })
+    }
+
+    const handleRemoveAdmin = () => {
+        const currentIds = user.roles?.map((ur) => ur.roleId) || []
+        const newIds = currentIds.filter((id) => {
+            const r = user.roles?.find((ur) => ur.roleId === id)
+            return r?.role.name !== "ADMIN"
+        })
+        updateRolesMutation.mutate({ id: user.id, roleIds: newIds })
+    }
 
     // Build user data for editing
     const roleIds = user.roles?.map((ur) => ur.roleId) || []
     const userData = {
         id: user.id,
         name: user.name || "",
+        image: user.image || "",
         birthPlace: user.birthPlace || "",
         birthDate: user.birthDate || "",
         livingAddress: user.livingAddress || "",
@@ -194,20 +245,34 @@ function UserActions({ user }: { user: User }) {
             <DropdownMenu>
                 <DropdownMenuTrigger
                     render={
-                        <Button
-                            variant="ghost"
-                            className="data-open:bg-muted text-muted-foreground flex size-8"
-                            size="icon"
+                        <button
+                            type="button"
+                            className="flex size-8 cursor-pointer items-center justify-center rounded-md hover:bg-muted border-0 bg-transparent p-0"
                         >
                             <EllipsisVerticalIcon />
                             <span className="sr-only">Open menu</span>
-                        </Button>
+                        </button>
                     }
                 />
                 <DropdownMenuContent align="end" className="w-40">
-                    <DropdownMenuItem onSelect={() => setEditOpen(true)}>Edit</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setEditOpen(true)}>Edit</DropdownMenuItem>
+                    {!isAdmin ? (
+                        <DropdownMenuItem
+                            onClick={handleMakeAdmin}
+                            disabled={!adminRole || updateRolesMutation.isPending}
+                        >
+                            {updateRolesMutation.isPending ? "Updating..." : "Make admin"}
+                        </DropdownMenuItem>
+                    ) : (
+                        <DropdownMenuItem
+                            onClick={handleRemoveAdmin}
+                            disabled={updateRolesMutation.isPending}
+                        >
+                            {updateRolesMutation.isPending ? "Updating..." : "Remove admin"}
+                        </DropdownMenuItem>
+                    )}
                     {!isPastor && (
-                        <DropdownMenuItem onSelect={() => setPromoteOpen(true)}>
+                        <DropdownMenuItem onClick={() => setPromoteOpen(true)}>
                             Promote to Pastor
                         </DropdownMenuItem>
                     )}
@@ -217,7 +282,7 @@ function UserActions({ user }: { user: User }) {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                         variant="destructive"
-                        onSelect={() => deleteMutation.mutate()}
+                        onClick={() => deleteMutation.mutate()}
                         disabled={deleteMutation.isPending}
                     >
                         {deleteMutation.isPending ? "Removing..." : "Remove"}
@@ -230,7 +295,7 @@ function UserActions({ user }: { user: User }) {
                     <SheetHeader>
                         <SheetTitle>Promote to Pastor</SheetTitle>
                         <SheetDescription>
-                            Select the zone that this pastor will oversee.
+                            Select the zone and set a login password so they can sign in at /pastor.
                         </SheetDescription>
                     </SheetHeader>
                     <div className="grid gap-4 py-4">
@@ -251,6 +316,23 @@ function UserActions({ user }: { user: User }) {
                                 </SelectContent>
                             </Select>
                         </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="pastor-password" className="text-right">
+                                Login password
+                            </Label>
+                            <Input
+                                id="pastor-password"
+                                type="password"
+                                placeholder="Min. 8 characters (for /pastor login)"
+                                className="col-span-3"
+                                value={pastorPassword}
+                                onChange={(e) => setPastorPassword(e.target.value)}
+                                minLength={8}
+                            />
+                            <p className="col-span-3 col-start-2 text-xs text-muted-foreground">
+                                They will use their email + this password to sign in at the Pastor dashboard.
+                            </p>
+                        </div>
                     </div>
                     <SheetFooter>
                         <Button
@@ -261,7 +343,7 @@ function UserActions({ user }: { user: User }) {
                         </Button>
                         <Button
                             onClick={() => promoteMutation.mutate()}
-                            disabled={!selectedZoneId || promoteMutation.isPending}
+                            disabled={!selectedZoneId || !pastorPassword || pastorPassword.length < 8 || promoteMutation.isPending}
                         >
                             {promoteMutation.isPending ? "Promoting..." : "Promote"}
                         </Button>
@@ -278,6 +360,7 @@ export const columns: ColumnDef<User>[] = [
         header: ({ table }) => (
             <div className="flex items-center justify-center">
                 <Checkbox
+                    key="header-checkbox"
                     checked={table.getIsAllPageRowsSelected()}
                     indeterminate={
                         table.getIsSomePageRowsSelected() &&

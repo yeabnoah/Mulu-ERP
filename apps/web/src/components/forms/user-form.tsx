@@ -3,6 +3,7 @@
 import * as React from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { userService } from "@/services/user.service"
+import { imageService } from "@/services/image.service"
 import { roleService } from "@/services/role.service"
 import { zoneService } from "@/services/zone.service"
 import { ministryService } from "@/services/ministry.service"
@@ -22,7 +23,8 @@ import {
     SheetClose,
 } from "@/components/ui/sheet"
 import { Checkbox } from "@/components/ui/checkbox"
-import { PlusIcon, Trash2Icon, XIcon } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { PlusIcon, Trash2Icon, XIcon, UploadIcon, CameraIcon } from "lucide-react"
 import { toast } from "sonner"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
@@ -44,6 +46,7 @@ interface UserFormProps {
 interface UserData {
     id: string;
     name: string;
+    image?: string;
     birthPlace?: string;
     birthDate?: string;
     livingAddress?: string;
@@ -118,6 +121,12 @@ export function UserForm({ user, open: externalOpen, onOpenChange: externalOnOpe
     const [familyId, setFamilyId] = React.useState("")
     const [familyRole, setFamilyRole] = React.useState("")
 
+    // Image
+    const [image, setImage] = React.useState<string>("")
+    const [imageFile, setImageFile] = React.useState<File | null>(null)
+    const [imagePreview, setImagePreview] = React.useState<string>("")
+    const [isUploading, setIsUploading] = React.useState(false)
+
     // Children
     const [children, setChildren] = React.useState<Child[]>([])
 
@@ -172,6 +181,8 @@ export function UserForm({ user, open: externalOpen, onOpenChange: externalOnOpe
             setLeaveMessageType(user.leaveMessageType || "")
             setFamilyId(user.familyId || "")
             setFamilyRole(user.familyRole || "")
+            setImage(user.image || "")
+            setImagePreview(user.image || "")
             setSelectedRoles(user.roleIds || [])
             setChildren(user.children || [])
         }
@@ -235,12 +246,45 @@ export function UserForm({ user, open: externalOpen, onOpenChange: externalOnOpe
         setFamilyRole("")
         setChildren([])
         setSelectedRoles([])
+        setImage("")
+        setImageFile(null)
+        setImagePreview("")
     }
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (file) {
+            setImageFile(file)
+            // Create preview URL
+            const reader = new FileReader()
+            reader.onload = (e) => {
+                setImagePreview(e.target?.result as string)
+            }
+            reader.readAsDataURL(file)
+        }
+    }
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+
+        let imageUrl = image
+
+        // Upload image if a new file was selected
+        if (imageFile) {
+            setIsUploading(true)
+            const result = await imageService.upload(imageFile)
+            setIsUploading(false)
+
+            if (!result.success) {
+                toast.error(result.error || "Failed to upload image")
+                return
+            }
+            imageUrl = result.url ?? imageUrl
+        }
+
         mutation.mutate({
             name,
+            image: imageUrl,
             birthPlace,
             birthDate: birthDate || undefined,
             livingAddress,
@@ -294,11 +338,21 @@ export function UserForm({ user, open: externalOpen, onOpenChange: externalOnOpe
 
     return (
         <Sheet open={open} onOpenChange={setOpen}>
-            <SheetTrigger render={<Button variant="outline" size="sm" />}>
-                <PlusIcon />
-                <span className="hidden lg:inline">Add Member</span>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-[500px] max-w-full overflow-y-auto">
+            <SheetTrigger
+                render={
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className={isEditing ? "hidden" : undefined}
+                    >
+                        <PlusIcon />
+                        <span className="hidden lg:inline">
+                            {isEditing ? "Edit Member" : "Add Member"}
+                        </span>
+                    </Button>
+                }
+            />
+            <SheetContent side="center" className="w-[600px] max-w-full overflow-y-auto max-h-[90vh]">
                 <SheetHeader>
                     <SheetTitle>{isEditing ? "Edit Member" : "Add New Member"}</SheetTitle>
                     <SheetDescription>
@@ -309,6 +363,35 @@ export function UserForm({ user, open: externalOpen, onOpenChange: externalOnOpe
                     {/* Basic Information */}
                     <div className="space-y-4">
                         <h3 className="font-semibold text-base border-b pb-2">Basic Information</h3>
+
+                        {/* Photo Upload */}
+                        <div className="flex flex-col items-center gap-4">
+                            <div className="relative">
+                                <Avatar className="h-24 w-24 border-2 border-muted">
+                                    <AvatarImage src={imagePreview} alt="User photo" />
+                                    <AvatarFallback className="text-2xl">
+                                        {name ? name[0].toUpperCase() : "?"}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <label
+                                    htmlFor="photo-upload"
+                                    className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-1.5 cursor-pointer hover:bg-primary/90 transition-colors"
+                                >
+                                    <CameraIcon className="h-4 w-4" />
+                                    <input
+                                        id="photo-upload"
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={handleImageChange}
+                                    />
+                                </label>
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                                Click to upload photo
+                            </span>
+                        </div>
+
                         <div className="flex flex-col gap-2">
                             <Label htmlFor="name">Full Name *</Label>
                             <Input
@@ -710,8 +793,8 @@ export function UserForm({ user, open: externalOpen, onOpenChange: externalOnOpe
                     </div>
 
                     <SheetFooter className="px-0 pt-4">
-                        <Button type="submit" className="w-full" disabled={mutation.isPending}>
-                            {mutation.isPending ? (isEditing ? "Updating..." : "Creating...") : (isEditing ? "Update Member" : "Create Member")}
+                        <Button type="submit" className="w-full" disabled={mutation.isPending || isUploading}>
+                            {mutation.isPending || isUploading ? (isEditing ? "Updating..." : "Creating...") : (isEditing ? "Update Member" : "Create Member")}
                         </Button>
                         <SheetClose render={<Button variant="outline" className="w-full" type="button" />}>
                             Cancel
