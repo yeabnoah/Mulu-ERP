@@ -12,8 +12,11 @@ uploadRoutes.post("/", async (c) => {
     bucket: string;
   }>();
 
-  const supabaseUrl = env.SUPABASE_URL;
-  const supabaseKey = env.SUPABASE_ANON_KEY;
+  const supabaseUrl = env.SUPABASE_URL?.trim();
+  // Use service role key for server-side uploads to bypass RLS (bucket policies)
+  const supabaseKey = (
+    env.SUPABASE_SERVICE_ROLE_KEY ?? env.SUPABASE_ANON_KEY
+  )?.trim();
 
   if (!supabaseUrl || !supabaseKey) {
     return c.json({ error: "Supabase not configured" }, 500);
@@ -35,9 +38,20 @@ uploadRoutes.post("/", async (c) => {
     );
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error("Supabase upload error:", error);
-      return c.json({ error: "Failed to upload file" }, 500);
+      const errorText = await response.text();
+      let errorMessage = "Failed to upload file";
+      try {
+        const errJson = JSON.parse(errorText) as { message?: string; error?: string };
+        errorMessage = errJson.message ?? errJson.error ?? (errorText || errorMessage);
+      } catch {
+        errorMessage = errorText || errorMessage;
+      }
+      if (errorMessage.toLowerCase().includes("signature verification failed")) {
+        errorMessage =
+          "Supabase key and URL are from different projects. SUPABASE_SERVICE_ROLE_KEY must be the service_role key from the same project as SUPABASE_URL (Dashboard → Project Settings → API).";
+      }
+      console.error("Supabase upload error:", response.status, errorMessage);
+      return c.json({ error: errorMessage }, 500);
     }
 
     // Return the public URL
@@ -48,8 +62,16 @@ uploadRoutes.post("/", async (c) => {
       url: publicUrl,
     });
   } catch (error) {
+    const err = error as NodeJS.ErrnoException & { cause?: NodeJS.ErrnoException };
+    const cause = err.cause ?? err;
+    const message =
+      cause.code === "ENOTFOUND"
+        ? `Cannot reach Supabase (${supabaseUrl}). Check SUPABASE_URL is correct, the project exists, and you have internet access.`
+        : err instanceof Error
+          ? err.message
+          : "Upload failed";
     console.error("Upload error:", error);
-    return c.json({ error: "Upload failed" }, 500);
+    return c.json({ error: message }, 500);
   }
 });
 
@@ -57,8 +79,10 @@ uploadRoutes.post("/", async (c) => {
 uploadRoutes.post("/delete", async (c) => {
   const { url } = await c.req.json<{ url: string }>();
 
-  const supabaseUrl = env.SUPABASE_URL;
-  const supabaseKey = env.SUPABASE_ANON_KEY;
+  const supabaseUrl = env.SUPABASE_URL?.trim();
+  const supabaseKey = (
+    env.SUPABASE_SERVICE_ROLE_KEY ?? env.SUPABASE_ANON_KEY
+  )?.trim();
 
   if (!supabaseUrl || !supabaseKey) {
     return c.json({ error: "Supabase not configured" }, 500);

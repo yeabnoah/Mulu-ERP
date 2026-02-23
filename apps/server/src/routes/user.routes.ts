@@ -127,47 +127,58 @@ userRoutes.post("/", async (c) => {
         }>
     }>();
 
-    const user = await prisma.user.create({
-        data: {
-            id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            name: data.name,
-            email: data.email || `${data.name.toLowerCase().replace(/\s/g, '.')}@church.local`,
-            image: data.image,
-            birthPlace: data.birthPlace,
-            birthDate: data.birthDate ? new Date(data.birthDate) : null,
-            livingAddress: data.livingAddress,
-            mobile1: data.mobile1,
-            mobile2: data.mobile2,
-            educationStatus: data.educationStatus,
-            skill: data.skill,
-            work: data.work,
-            companyName: data.companyName,
-            closePersonName: data.closePersonName,
-            closePersonMobile: data.closePersonMobile,
-            marriageStatus: data.marriageStatus as any,
-            spouseName: data.spouseName,
-            spouseBelief: data.spouseBelief as any,
-            baptizedYear: data.baptizedYear,
-            foundationTeacherName: data.foundationTeacherName,
-            fromOtherChurch: data.fromOtherChurch,
-            formerChurchName: data.formerChurchName,
-            leaveMessage: data.leaveMessage,
-            leaveMessageType: data.leaveMessageType as any,
-            leaveMessageBroughtDate: data.leaveMessageBroughtDate ? new Date(data.leaveMessageBroughtDate) : null,
-            zoneId: data.zoneId,
-            currentMinistryId: data.currentMinistryId,
-            familyId: data.familyId,
-            familyRole: data.familyRole as any,
-            roles: data.roleIds ? {
-                create: data.roleIds.map((roleId) => ({ roleId }))
-            } : undefined,
-            children: data.children ? {
-                create: data.children
-            } : undefined,
-        },
-    });
+    try {
+        const user = await prisma.user.create({
+            data: {
+                id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                name: data.name,
+                email: data.email || `${data.name.toLowerCase().replace(/\s/g, '.')}@church.local`,
+                image: data.image,
+                birthPlace: data.birthPlace,
+                birthDate: data.birthDate ? new Date(data.birthDate) : null,
+                livingAddress: data.livingAddress,
+                mobile1: data.mobile1,
+                mobile2: data.mobile2,
+                educationStatus: data.educationStatus,
+                skill: data.skill,
+                work: data.work,
+                companyName: data.companyName,
+                closePersonName: data.closePersonName,
+                closePersonMobile: data.closePersonMobile,
+                marriageStatus: data.marriageStatus as any,
+                spouseName: data.spouseName,
+                spouseBelief: data.spouseBelief as any,
+                baptizedYear: data.baptizedYear,
+                foundationTeacherName: data.foundationTeacherName,
+                fromOtherChurch: data.fromOtherChurch,
+                formerChurchName: data.formerChurchName,
+                leaveMessage: data.leaveMessage,
+                leaveMessageType: data.leaveMessageType as any,
+                leaveMessageBroughtDate: data.leaveMessageBroughtDate ? new Date(data.leaveMessageBroughtDate) : null,
+                zoneId: data.zoneId,
+                currentMinistryId: data.currentMinistryId,
+                familyId: data.familyId,
+                familyRole: data.familyRole as any,
+                roles: data.roleIds ? {
+                    create: data.roleIds.map((roleId) => ({ roleId }))
+                } : undefined,
+                children: data.children ? {
+                    create: data.children
+                } : undefined,
+            },
+        });
 
-    return c.json(user);
+        return c.json(user);
+    } catch (err: unknown) {
+        const prismaError = err as { code?: string };
+        if (prismaError.code === "P2002") {
+            return c.json(
+                { error: "A user with this email already exists." },
+                409
+            );
+        }
+        throw err;
+    }
 });
 
 // Update user

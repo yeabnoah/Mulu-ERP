@@ -40,8 +40,8 @@ export const imageService = {
 
       const base64 = await base64Promise
 
-      // Upload to Supabase Storage via server API
-      const response = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/api/upload`, {
+      // Upload via Next.js API route (same-origin) which proxies to backend
+      const response = await fetch("/api/upload", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -79,7 +79,7 @@ export const imageService = {
 
   delete: async (url: string): Promise<UploadResult> => {
     try {
-      const response = await fetch(`${env.NEXT_PUBLIC_SERVER_URL}/api/upload/delete`, {
+      const response = await fetch("/api/upload/delete", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
