@@ -423,13 +423,18 @@ export default function Page() {
   const [view, setView] = React.useState<"admin" | "pastor">("admin")
   const [selectedZone, setSelectedZone] = React.useState<string>("")
 
-  const { data: session } = authClient.useSession()
+  const { data: session, isPending: sessionPending } = authClient.useSession()
   const { data: me } = useQuery({
     queryKey: ["portal", "me"],
     queryFn: () => portalService.getMe(),
     enabled: !!session?.user?.id,
   })
   React.useEffect(() => {
+    if (sessionPending) return
+    if (!session) {
+      router.replace("/login")
+      return
+    }
     if (!me) return
     if (!me.isAppAdmin) {
       router.replace("/my-ministry")
@@ -438,7 +443,7 @@ export default function Page() {
     if (me.isPastor && !me.isAdmin) {
       router.replace("/pastor")
     }
-  }, [me, router])
+  }, [session, sessionPending, me, router])
 
   const { data: stats, isLoading: loadingAdmin } = useQuery({
     queryKey: ["stats-detailed"],
@@ -457,6 +462,13 @@ export default function Page() {
     enabled: !!selectedZone,
   })
 
+  if (sessionPending || !session) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    )
+  }
   if (session && me && (!me.isAppAdmin || (me.isPastor && !me.isAdmin))) {
     return null
   }
