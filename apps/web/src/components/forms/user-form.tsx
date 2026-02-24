@@ -461,7 +461,17 @@ export function UserForm({ user, open: externalOpen, onOpenChange: externalOnOpe
                         <div className="grid grid-cols-2 gap-4">
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="educationStatus">Education Status</Label>
-                                <Select value={educationStatus} onValueChange={(value) => setEducationStatus(value || "")}>
+                                <Select
+                                    value={educationStatus}
+                                    onValueChange={(value) => setEducationStatus(value ?? "")}
+                                    items={[
+                                        { value: "HIGH_SCHOOL", label: "High School" },
+                                        { value: "DIPLOMA", label: "Diploma" },
+                                        { value: "DEGREE", label: "Degree" },
+                                        { value: "MASTERS", label: "Masters" },
+                                        { value: "PHD", label: "PhD" },
+                                    ]}
+                                >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select..." />
                                     </SelectTrigger>
@@ -512,7 +522,11 @@ export function UserForm({ user, open: externalOpen, onOpenChange: externalOnOpe
                         <div className="grid grid-cols-2 gap-4">
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="zone">Zone</Label>
-                                <Select value={zoneId} onValueChange={(value) => setZoneId(value || "")}>
+                                <Select
+                                    value={zoneId}
+                                    onValueChange={(value) => setZoneId(value ?? "")}
+                                    items={(zones ?? []).map((z: { id: string; name: string }) => ({ value: z.id, label: z.name }))}
+                                >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select zone..." />
                                     </SelectTrigger>
@@ -525,7 +539,11 @@ export function UserForm({ user, open: externalOpen, onOpenChange: externalOnOpe
                             </div>
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="ministry">Current Ministry</Label>
-                                <Select value={currentMinistryId} onValueChange={(value) => setCurrentMinistryId(value || "")}>
+                                <Select
+                                    value={currentMinistryId}
+                                    onValueChange={(value) => setCurrentMinistryId(value ?? "")}
+                                    items={(ministries ?? []).map((m: { id: string; name: string }) => ({ value: m.id, label: m.name }))}
+                                >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select ministry..." />
                                     </SelectTrigger>
@@ -545,7 +563,11 @@ export function UserForm({ user, open: externalOpen, onOpenChange: externalOnOpe
                         <div className="grid grid-cols-2 gap-4">
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="family">Assign to Family</Label>
-                                <Select value={familyId} onValueChange={(value) => setFamilyId(value || "")}>
+                                <Select
+                                    value={familyId}
+                                    onValueChange={(value) => setFamilyId(value ?? "")}
+                                    items={(families ?? []).map((f: { id: string; name: string }) => ({ value: f.id, label: f.name }))}
+                                >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select family..." />
                                     </SelectTrigger>
@@ -558,7 +580,16 @@ export function UserForm({ user, open: externalOpen, onOpenChange: externalOnOpe
                             </div>
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="familyRole">Family Role</Label>
-                                <Select value={familyRole} onValueChange={(value) => setFamilyRole(value || "")}>
+                                <Select
+                                    value={familyRole}
+                                    onValueChange={(value) => setFamilyRole(value ?? "")}
+                                    items={[
+                                        { value: "FATHER", label: "Father" },
+                                        { value: "MOTHER", label: "Mother" },
+                                        { value: "SON", label: "Son" },
+                                        { value: "DAUGHTER", label: "Daughter" },
+                                    ]}
+                                >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select role..." />
                                     </SelectTrigger>
@@ -603,7 +634,16 @@ export function UserForm({ user, open: externalOpen, onOpenChange: externalOnOpe
                         <h3 className="font-semibold text-base border-b pb-2">Marriage Information</h3>
                         <div className="flex flex-col gap-2">
                             <Label htmlFor="marriageStatus">Marriage Status</Label>
-                            <Select value={marriageStatus} onValueChange={(value) => setMarriageStatus(value || "")}>
+                            <Select
+                                value={marriageStatus}
+                                onValueChange={(value) => setMarriageStatus(value ?? "")}
+                                items={[
+                                    { value: "SINGLE", label: "Single" },
+                                    { value: "MARRIED", label: "Married" },
+                                    { value: "WIDOW", label: "Widow" },
+                                    { value: "DIVORCED", label: "Divorced" },
+                                ]}
+                            >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select status..." />
                                 </SelectTrigger>
@@ -628,7 +668,14 @@ export function UserForm({ user, open: externalOpen, onOpenChange: externalOnOpe
                                 </div>
                                 <div className="flex flex-col gap-2">
                                     <Label htmlFor="spouseBelief">Spouse Belief</Label>
-                                    <Select value={spouseBelief} onValueChange={(value) => setSpouseBelief(value || "")}>
+                                    <Select
+                                        value={spouseBelief}
+                                        onValueChange={(value) => setSpouseBelief(value ?? "")}
+                                        items={[
+                                            { value: "BELIEVER", label: "Believer" },
+                                            { value: "OTHER", label: "Other Religion" },
+                                        ]}
+                                    >
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select..." />
                                         </SelectTrigger>
@@ -664,7 +711,14 @@ export function UserForm({ user, open: externalOpen, onOpenChange: externalOnOpe
                                         </div>
                                         <div className="flex flex-col gap-1">
                                             <Label className="text-xs">Gender</Label>
-                                            <Select value={child.gender} onValueChange={(v) => updateChild(index, "gender", v || "")}>
+                                            <Select
+                                                value={child.gender}
+                                                onValueChange={(v) => updateChild(index, "gender", v ?? "")}
+                                                items={[
+                                                    { value: "MALE", label: "Male" },
+                                                    { value: "FEMALE", label: "Female" },
+                                                ]}
+                                            >
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Select..." />
                                                 </SelectTrigger>
@@ -744,7 +798,14 @@ export function UserForm({ user, open: externalOpen, onOpenChange: externalOnOpe
                                 </div>
                                 <div className="flex flex-col gap-2">
                                     <Label htmlFor="leaveMessageType">Leave Message Type</Label>
-                                    <Select value={leaveMessageType} onValueChange={(value) => setLeaveMessageType(value || "")}>
+                                    <Select
+                                        value={leaveMessageType}
+                                        onValueChange={(value) => setLeaveMessageType(value ?? "")}
+                                        items={[
+                                            { value: "LEAVE_MESSAGE", label: "Leave Message" },
+                                            { value: "SPECIAL_CASE", label: "Special Case" },
+                                        ]}
+                                    >
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select..." />
                                         </SelectTrigger>
