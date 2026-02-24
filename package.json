@@ -16,7 +16,9 @@
     "db:push": "turbo -F @muluerp/db db:push",
     "db:studio": "turbo -F @muluerp/db db:studio",
     "db:generate": "turbo -F @muluerp/db db:generate",
-    "db:migrate": "turbo -F @muluerp/db db:migrate"
+    "db:migrate": "turbo -F @muluerp/db db:migrate",
+  "db:seed": "turbo -F @muluerp/db db:seed",
+  "update-admin": "turbo -F @muluerp/db update-admin"
   },
   "dependencies": {
     "@muluerp/env": "workspace:*",

@@ -65,7 +65,7 @@ userRoutes.post("/set-password", async (c) => {
 
     const hashed = await hashPassword(newPassword);
     const existing = await prisma.account.findFirst({
-        where: { userId, providerId: "email" },
+        where: { userId, providerId: "credential" },
     });
     if (existing) {
         await prisma.account.update({
@@ -78,7 +78,7 @@ userRoutes.post("/set-password", async (c) => {
                 id: `credential-${userId}`,
                 userId,
                 accountId: user.email,
-                providerId: "email",
+                providerId: "credential",
                 password: hashed,
             },
         });

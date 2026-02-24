@@ -36,6 +36,39 @@ This project uses PostgreSQL with Prisma.
 pnpm run db:push
 ```
 
+4. **(Optional)** Create the first admin user and seed roles:
+
+```bash
+pnpm run db:seed
+```
+
+This creates an admin with **email** and **password** from `apps/server/.env`, or defaults:
+
+- `ADMIN_EMAIL` (default: `admin@muluerp.com`)
+- `ADMIN_PASSWORD` (default: `admin123`)
+
+Example with custom credentials:
+
+```bash
+# In apps/server/.env add:
+ADMIN_EMAIL=your@email.com
+ADMIN_PASSWORD=your-secure-password
+```
+
+Then run `pnpm run db:seed` again (or before first seed).
+
+5. **Change the admin email or password later:**
+
+```bash
+# Set in apps/server/.env (or export in shell):
+ADMIN_EMAIL=new@example.com
+ADMIN_PASSWORD=newpassword
+
+pnpm run update-admin
+```
+
+You can set only `ADMIN_PASSWORD` to change just the password. In the app, admins can also set or change passwords for other users (e.g. ministry admins) from the Users and Ministry Admin pages.
+
 Then, run the development server:
 
 ```bash
@@ -67,4 +100,6 @@ muluerp/
 - `pnpm run db:push`: Push schema changes to database
 - `pnpm run db:generate`: Generate database client/types
 - `pnpm run db:migrate`: Run database migrations
+- `pnpm run db:seed`: Create first admin user (and ADMIN role)
 - `pnpm run db:studio`: Open database studio UI
+- `pnpm run update-admin`: Update admin email/password (set `ADMIN_EMAIL` and/or `ADMIN_PASSWORD` in `apps/server/.env`)

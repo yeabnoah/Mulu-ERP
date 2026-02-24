@@ -1,9 +1,20 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import dotenv from "dotenv";
+
+// Load env from apps/server/.env (works when run from repo root or packages/db)
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const envPath = path.resolve(__dirname, "../../../apps/server/.env");
+dotenv.config({ path: envPath });
+
 import { PrismaClient } from "./generated/client";
-import { crypto } from "better-auth/crypto";
+import { hashPassword } from "better-auth/crypto";
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
 
-const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+const connectionString = process.env.DATABASE_URL || process.env.DIRECT_URL;
+if (!connectionString) throw new Error("DATABASE_URL or DIRECT_URL must be set (e.g. in apps/server/.env)");
+const pool = new pg.Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
@@ -20,10 +31,10 @@ async function main() {
     });
     console.log("✅ ADMIN role ensured.");
 
-    // 2. Create Default Admin User
-    const adminEmail = "admin@muluerp.com";
-    const adminPassword = "admin123";
-    const hashedPassword = await crypto.hashPassword(adminPassword);
+    // 2. Create Default Admin User (email/password from env or defaults)
+    const adminEmail = process.env.ADMIN_EMAIL || "admin@muluerp.com";
+    const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
+    const hashedPassword = await hashPassword(adminPassword);
 
     const adminUser = await prisma.user.upsert({
         where: { email: adminEmail },
@@ -41,12 +52,14 @@ async function main() {
         where: { id: "admin-account-id" },
         update: {
             password: hashedPassword,
+            providerId: "credential",
+            accountId: adminEmail,
         },
         create: {
             id: "admin-account-id",
             userId: adminUser.id,
             accountId: adminEmail,
-            providerId: "email",
+            providerId: "credential",
             password: hashedPassword,
         },
     });
